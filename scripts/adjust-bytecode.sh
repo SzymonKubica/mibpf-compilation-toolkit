@@ -9,8 +9,18 @@
 # overlap
 #
 # TODO: make this work for all programs
+# Investigate: is this actually needed for all memory loads?
+
+#xxd $1 | tee checkpoint | sed ' s/6112 5000 0000 0000/7912 5000 0000 0000/ ;
+#    s/6111 4c00 0000 0000/7911 4000 0000 0000/ ;
+#   s/6111 2200 0000 0000/7911 2200 0000 0000/' | xxd -r > $1.tmp
+# Testing different program
+# Effectively all instructions starting with 61 need to be replaced by 79
 xxd $1 | tee checkpoint | sed ' s/6112 5000 0000 0000/7912 5000 0000 0000/ ;
     s/6111 4c00 0000 0000/7911 4000 0000 0000/ ;
+    s/6116 4c00 0000 0000/7916 4000 0000 0000/ ;
+    s/6117 4c00 0000 0000/7917 4000 0000 0000/ ;
+    s/6111 5000 0000 0000/7911 5000 0000 0000/ ;
    s/6111 2200 0000 0000/7911 2200 0000 0000/' | xxd -r > $1.tmp
 
 mv $1.tmp $1

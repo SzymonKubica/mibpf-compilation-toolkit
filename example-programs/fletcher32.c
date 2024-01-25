@@ -26,17 +26,26 @@ struct eth_hdr {
 };
 
 SEC(".main")
-int fletcher_32(void *ctx)
+int fletcher_32(struct __sk_buff *skb)
 {
-    uint8_t *payload = (uint8_t *) ctx;
-    for (int i = 0; i < 10; i++) {
-        bpf_trace_printk("", 20, *(payload + 0x40 + i));
-    }
+    void *data = (void *)(long)skb->data;
+    void *data_end = (void *)(long)skb->data_end;
+    struct eth_hdr *eth = data;
+    struct iphdr *iph = data + sizeof(*eth);
+    struct tcphdr *tcp = data + sizeof(*eth) + sizeof(*iph);
 
     // Ensure that there is some data
+    if (data + sizeof(*eth) + sizeof(*iph) + sizeof(*tcp) > data_end)
+        return 1;
+
+    uint8_t *payload = data + sizeof(*eth) + sizeof(*iph) + sizeof(*tcp);
+
+    for (int i = 0; i < 22; i++) {
+        bpf_trace_printk("", 20, *payload);
+        payload++;
+    }
 
     /*
-    bpf_trace_printk("", 20, *payload);
     size_t len = 3;
     bpf_trace_printk("", 20, len);
 
