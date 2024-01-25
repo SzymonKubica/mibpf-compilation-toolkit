@@ -36,18 +36,17 @@ int fletcher_32(struct __sk_buff *skb)
 
     // Ensure that there is some data
     if (data + sizeof(*eth) + sizeof(*iph) + sizeof(*tcp) > data_end)
-        return 1;
+        return -1;
 
     uint8_t *payload = data + sizeof(*eth) + sizeof(*iph) + sizeof(*tcp);
 
-    for (int i = 0; i < 22; i++) {
-        bpf_trace_printk("", 20, *payload);
-        payload++;
+    uint8_t length = *payload;
+    bpf_trace_printk("", 20, length);
+    for (int i = 1; i <= length; i++) {
+        bpf_trace_printk("", 20, *(payload + i));
     }
 
-    /*
-    size_t len = 3;
-    bpf_trace_printk("", 20, len);
+    size_t len = 22;
 
     uint32_t c0 = 0;
     uint32_t c1 = 0;
@@ -59,7 +58,6 @@ int fletcher_32(struct __sk_buff *skb)
         }
         len -= blocklen;
         for (size_t i = 0; i <= blocklen; i += 2) {
-            bpf_trace_printk("", 20, *payload);
             char c = *payload++;
             c0 = c0 + c;
             c1 = c1 + c0;
@@ -69,7 +67,6 @@ int fletcher_32(struct __sk_buff *skb)
     }
 
     uint32_t checksum = (c1 << 16 | c0);
-    */
 
-    return 0;
+    return checksum;
 }

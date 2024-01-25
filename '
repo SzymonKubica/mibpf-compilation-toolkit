@@ -96,9 +96,8 @@ fn test_program_run(program: &Vec<u8>) {
 
     // Write message bytes into the packet
     for i in 0..message_bytes.len() {
-        print!("{:02x}, ", message_bytes[i]);
+        println!("{:02x}", message_bytes[i]);
     }
-    println!("Message length: {}", message_bytes.len());
 
     packet_with_payload.push(message_bytes.len() as u8);
     packet_with_payload.append(&mut message_bytes.to_vec());
