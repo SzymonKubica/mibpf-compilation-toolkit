@@ -7,3 +7,5 @@ edition = "2021"
 
 [dependencies]
 elf = "0.0.10"
+rbpf = "0.2.0"
+

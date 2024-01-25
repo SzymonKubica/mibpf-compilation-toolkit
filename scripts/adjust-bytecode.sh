@@ -8,9 +8,10 @@
 # data is stored as the values produced by clang would cause the addresses to
 # overlap
 #
-xxd $1.o | sed ' s/6112 5000 0000 0000/7912 5000 0000 0000/ ;
+# TODO: make this work for all programs
+xxd $1 | tee checkpoint | sed ' s/6112 5000 0000 0000/7912 5000 0000 0000/ ;
     s/6111 4c00 0000 0000/7911 4000 0000 0000/ ;
    s/6111 2200 0000 0000/7911 2200 0000 0000/' | xxd -r > $1.tmp
 
-mv $1.tmp $1.o
+mv $1.tmp $1
 

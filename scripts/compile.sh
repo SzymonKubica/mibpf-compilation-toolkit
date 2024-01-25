@@ -1,1 +1,1 @@
-clang -O2 -emit-llvm -c $1.c -o - | llc -march=bpf -filetype=obj -o $1.o
+clang -O2 -emit-llvm -c $1 -o - | llc -march=bpf -filetype=obj -o $2
