@@ -40,6 +40,7 @@ int fletcher_32(struct __sk_buff *skb)
 
     uint8_t *payload = data + sizeof(*eth) + sizeof(*iph) + sizeof(*tcp);
 
+    // Print all of the message bytes
     uint8_t length = *payload;
     bpf_trace_printk("", 20, length);
     for (int i = 1; i <= length; i++) {

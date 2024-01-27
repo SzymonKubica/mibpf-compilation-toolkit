@@ -103,8 +103,6 @@ fn test_program_run(program: &Vec<u8>) {
     packet_with_payload.push(message_bytes.len() as u8);
     packet_with_payload.append(&mut message_bytes.to_vec());
 
-    //packet1.to_vec().append(&mut message_bytes.to_vec());
-
     let mut vm = rbpf::EbpfVmFixedMbuff::new(Some(&program[..]), 0x40, 0x50).unwrap();
 
     // We register a helper function, that can be called by the program, into
