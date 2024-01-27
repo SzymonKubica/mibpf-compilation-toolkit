@@ -91,7 +91,15 @@ fn test_program_run(program: &Vec<u8>) {
 
     let mut packet_with_payload = packet1.to_vec();
 
-    let checksum_message = "abcdef";
+    // This checksum was taken from an example in RIOT.
+    let checksum_message = "abcdef\
+            AD3Awn4kb6FtcsyE0RU25U7f55Yncn3LP3oEx9Gl4qr7iDW7I8L6Pbw9jNnh0sE4DmCKuc\
+        d1J8I34vn31W924y5GMS74vUrZQc08805aj4Tf66HgL1cO94os10V2s2GDQ825yNh9Yuq3\
+        QHcA60xl31rdA7WskVtCXI7ruH1A4qaR6Uk454hm401lLmv2cGWt5KTJmr93d3JsGaRRPs\
+        4HqYi4mFGowo8fWv48IcA3N89Z99nf0A0H2R6P0uI4Tir682Of3Rk78DUB2dIGQRRpdqVT\
+        tLhgfET2gUGU65V3edSwADMqRttI9JPVz8JS37g5QZj4Ax56rU1u0m0K8YUs57UYG5645n\
+        byNy4yqxu7";
+
     let message_bytes = checksum_message.as_bytes();
 
     // Write message bytes into the packet
