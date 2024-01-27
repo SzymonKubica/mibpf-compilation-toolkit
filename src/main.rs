@@ -91,7 +91,7 @@ fn test_program_run(program: &Vec<u8>) {
 
     let mut packet_with_payload = packet1.to_vec();
 
-    let checksum_message = "This is a test message for the checksumming algorithm";
+    let checksum_message = "abcdef";
     let message_bytes = checksum_message.as_bytes();
 
     // Write message bytes into the packet

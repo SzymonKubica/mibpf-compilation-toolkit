@@ -1,28 +1,27 @@
+#include <linux/bpf.h>
+#include <linux/in.h>
+#include <linux/ip.h>
+#include <linux/tcp.h>
 #include <stdint.h>
 #include <string.h>
-#include <linux/ip.h>
-#include <linux/in.h>
-#include <linux/tcp.h>
-#include <linux/bpf.h>
 #include <bpf/bpf_helpers.h>
 
 /*
- * Discussion points: eBPF seems to be limited w.r.t storing strings on the stack
- * When I tried including the 360B long string in the function code directly as
- * a constant. There was an error with illegal memory accesses. It could be
- * because that string couldn't fit in the stack.
+ * Discussion points: eBPF seems to be limited w.r.t storing strings on the
+ * stack When I tried including the 360B long string in the function code
+ * directly as a constant. There was an error with illegal memory accesses. It
+ * could be because that string couldn't fit in the stack.
  *
  */
-
 
 #define ETH_ALEN 6
 #define ETH_P_IP 0x0008 /* htons(0x0800) */
 #define TCP_HDR_LEN 20
 
 struct eth_hdr {
-    unsigned char   h_dest[ETH_ALEN];
-    unsigned char   h_source[ETH_ALEN];
-    unsigned short  h_proto;
+    unsigned char h_dest[ETH_ALEN];
+    unsigned char h_source[ETH_ALEN];
+    unsigned short h_proto;
 };
 
 SEC(".main")
@@ -38,17 +37,22 @@ int fletcher_32(struct __sk_buff *skb)
     if (data + sizeof(*eth) + sizeof(*iph) + sizeof(*tcp) > data_end)
         return -1;
 
+    // After the tcp header, the packet data section begins which in our
+    // case contains the payload with the string that is used to compute
+    // the fletcher32 checksum.
     uint8_t *payload = data + sizeof(*eth) + sizeof(*iph) + sizeof(*tcp);
 
-    // Print all of the message bytes
+    // The payload is in 8 bit bytes whereas the algorithm operaties on
+    // 16 bit intergers. We need to half the message size.
     uint8_t length = *payload;
     bpf_trace_printk("", 20, length);
-    for (int i = 1; i <= length; i++) {
-        bpf_trace_printk("", 20, *(payload + i));
+    uint16_t *ptr_for_print = (uint16_t *) ++payload;
+    for (int i = 0; i < length / 2; i++) {
+        bpf_trace_printk("", 20, *ptr_for_print++);
     }
+    uint16_t *data_ptr = (uint16_t *)payload;
 
-    size_t len = 22;
-
+    size_t len = (length + 1) & ~1; /* Round up len to words */
     uint32_t c0 = 0;
     uint32_t c1 = 0;
 
@@ -58,11 +62,10 @@ int fletcher_32(struct __sk_buff *skb)
             blocklen = 360 * 2;
         }
         len -= blocklen;
-        for (size_t i = 0; i <= blocklen; i += 2) {
-            char c = *payload++;
-            c0 = c0 + c;
+        do {
+            c0 = c0 + *data_ptr++;
             c1 = c1 + c0;
-        }
+        } while ((blocklen -= 2));
         c0 = c0 % 65535;
         c1 = c1 % 65535;
     }
