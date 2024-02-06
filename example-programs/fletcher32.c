@@ -42,11 +42,15 @@ int fletcher_32(struct __sk_buff *skb)
     // the fletcher32 checksum.
     uint8_t *payload = data + sizeof(*eth) + sizeof(*iph) + sizeof(*tcp);
 
+    // First extract the length of the message.
+    uint32_t length = *(uint32_t *)payload;
+    // Skip the remaining bits of the length field
+    payload = (uint8_t *)payload + 4;
+
+    bpf_trace_printk("", 20, length);
+    uint16_t *ptr_for_print = (uint16_t *)payload;
     // The payload is in 8 bit bytes whereas the algorithm operaties on
     // 16 bit intergers. We need to half the message size.
-    uint8_t length = *payload;
-    bpf_trace_printk("", 20, length);
-    uint16_t *ptr_for_print = (uint16_t *) ++payload;
     for (int i = 0; i < length / 2; i++) {
         bpf_trace_printk("", 20, *ptr_for_print++);
     }
