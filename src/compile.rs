@@ -146,6 +146,7 @@ fn compile_rbpf(
         std::fs::create_dir(out_dir).expect("Failed to create the object file directory.");
     }
 
+    // TODO: migrate those scripts to code for better flexibility.
     // The first compilation step involves using clang and llvm to compile
     // the eBPF bytecode exactly like it is done in case of the Linux kernel
     // eBPF programs.
@@ -157,6 +158,8 @@ fn compile_rbpf(
         .expect("Failed to compile the eBPF bytecode.")
         .wait();
 
+    // TODO: make this step fully generic instead of manual hard-coded string
+    // replacement
     // The second compilation step patches the bytecode to correct the
     // packet data offsets and replace the instructions so that the packet data
     // is loaded as 8-byte double words.
