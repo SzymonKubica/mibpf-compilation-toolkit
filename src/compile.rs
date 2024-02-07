@@ -1,7 +1,9 @@
 use rbpf::helpers;
-use std::fmt;
+use std::ffi::OsStr;
 use std::fs::File;
 use std::io::Write;
+use std::path::Path;
+use std::{fmt, fs};
 use std::{path::PathBuf, process::Command};
 
 use crate::args::Action;
@@ -76,6 +78,26 @@ fn compile_fc(bpf_source_file: &str, out_dir: &str, binary_file: &Option<String>
         .spawn()
         .expect("Failed to compile the eBPF bytecode.")
         .wait();
+
+    // Make sure the out directory exists
+    if !PathBuf::from(out_dir).exists() {
+        std::fs::create_dir(out_dir).expect("Failed to create the object file directory.");
+    }
+
+    // Copy all of the .o files into the out directory
+    // We need to ensure that the out directory exists
+    let read_dir = fs::read_dir(source_directory);
+    for entry in read_dir.unwrap() {
+        let path = &entry.unwrap().path();
+        if let Some("o") = path.extension().and_then(OsStr::to_str) {
+            let _ = Command::new("mv")
+                .arg(path.to_str().unwrap())
+                .arg(out_dir)
+                .spawn()
+                .expect("Failed to copy the binary file.")
+                .wait();
+        }
+    }
 
     if let Some(file_name) = binary_file {
         let base_name = bpf_source_file
