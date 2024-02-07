@@ -8,6 +8,7 @@ pub fn handle_sign(args: &crate::args::Action) {
         board_name,
         coaproot_dir,
         binary_name,
+        suit_storage_slot,
     } = args
     {
         place_binary_in_coap_root(coaproot_dir, binary_name);
@@ -21,6 +22,7 @@ pub fn handle_sign(args: &crate::args::Action) {
             .arg(coaproot_dir)
             // The file should have been copied to coaproot by now.
             .arg(format!("{}/{}", coaproot_dir, file_name))
+            .arg(suit_storage_slot.to_string())
             .spawn()
             .expect("Failed to compile the eBPF bytecode.")
             .wait();

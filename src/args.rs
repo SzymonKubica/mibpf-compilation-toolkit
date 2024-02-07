@@ -54,6 +54,11 @@ pub enum Action {
         /// directory.
         #[arg(long, default_value_t = String::from("a.bin"))]
         binary_name: String,
+
+        /// SUIT storage slot (0 or 1) where the signed binary blob is intended
+        /// bo be loaded.
+        #[arg(long, short, default_value_t = 0)]
+        suit_storage_slot: i32,
     },
 
     /// Sends a request to the RIOT instance to fetch the new signed binary
