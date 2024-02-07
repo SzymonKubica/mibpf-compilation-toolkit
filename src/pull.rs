@@ -1,4 +1,29 @@
+use coap::UdpCoAPClient;
+use coap_lite::{CoapRequest, RequestType as Method};
 
-pub fn handle_pull(command: &crate::args::Action) {
-    todo!()
+use crate::args::Action;
+
+pub async fn handle_pull(args: &crate::args::Action) {
+    if let Action::Pull {
+        riot_ipv6_addr,
+        host_ipv6_addr,
+        suit_manifest,
+    } = args
+    {
+        let url = format!("coap://[{}]/suit/pull", riot_ipv6_addr);
+        println!("Sending a request to the url: {}", url);
+
+        let data = format!("{};{}", host_ipv6_addr, suit_manifest);
+
+        let response = UdpCoAPClient::post(url.as_ref(), data.as_bytes().to_vec())
+            .await
+            .unwrap();
+
+        println!(
+            "Server reply: {}",
+            String::from_utf8(response.message.payload).unwrap()
+        );
+    } else {
+        panic!("Invalid action args: {:?}", args);
+    }
 }

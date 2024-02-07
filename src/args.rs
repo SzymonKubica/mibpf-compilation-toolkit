@@ -21,16 +21,13 @@ pub enum Action {
         #[arg(long, default_value_t = String::from("./out"))]
         out_dir: String,
 
-
         /// Name of the elf section of the main function in the eBPF program.
         #[arg(long, default_value_t = String::from(".main"))]
         elf_section_name: String,
 
-
         /// Controlls whether the bytecode is executed in a native vm after compilation.
         #[arg(long, default_value_t = false)]
         test_execution: bool,
-
     },
 
     /// Sign the eBPF binary for SUIT update protocol. Generates  the manifest,
@@ -63,7 +60,20 @@ pub enum Action {
 
     /// Sends a request to the RIOT instance to fetch the new signed binary
     /// and load it into the specified SUIT storage slot.
-    Pull {},
+    Pull {
+        /// IPv6 address of the RIOT instance.
+        #[arg(long)]
+        riot_ipv6_addr: String,
+        /// IPv6 address of the desktop machine hosting the CoAP fileserver with
+        /// the binary blob and SUIT manifest.
+        #[arg(long)]
+        host_ipv6_addr: String,
+
+        /// Name of the signed SUIT manifest file present in the CoAP fileserver
+        /// root directory.
+        # [arg(long, default_value_t = String::from("suit_manifest.signed"))]
+        suit_manifest: String,
+    },
     /// Sends a request to the RIOT instance to execute the loaded eBPF bytecode
     /// from a specified SUIT storage slot.
     Execute {},
