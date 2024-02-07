@@ -4,6 +4,8 @@ use std::fs::File;
 use std::io::Write;
 use std::{path::PathBuf, process::Command};
 
+use crate::args::Action;
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum VmTarget {
     FemtoContainers,
@@ -26,29 +28,40 @@ impl fmt::Display for VmTarget {
     }
 }
 
-pub fn handle_compile(args: args::Action::Compile) {
-    let bpf_source_file = args.bpf_source_file;
-    let output_file = args.output_file;
-    let elf_section_name = args.elf_section_name;
-    let test_execution = args.test_execution;
-    match target {
-        VmTarget::FemtoContainers => compile_fc(bpf_source_file, output_file),
-        VmTarget::RBPF => compile_rbpf(
-            bpf_source_file,
-            output_file,
-            elf_section_name,
-            test_execution,
-        ),
+pub fn handle_compile(args: &Action) {
+    if let Action::Compile {
+        bpf_source_file,
+        target,
+        binary_file,
+        out_dir,
+        elf_section_name,
+        test_execution,
+    } = args
+    {
+        let vm_target = VmTarget::from(target.clone());
+        match vm_target {
+            VmTarget::FemtoContainers => compile_fc(bpf_source_file, binary_file),
+            VmTarget::RBPF => compile_rbpf(
+                bpf_source_file,
+                binary_file,
+                out_dir,
+                elf_section_name,
+                *test_execution,
+            ),
+        }
+    } else {
+        panic!("Invalid action args: {:?}", args);
     }
 }
 
-fn compile_fc(bpf_source_file: &str, output_file: &str) {
+fn compile_fc(bpf_source_file: &str, binary_file: &Option<String>) {
     todo!()
 }
 
 fn compile_rbpf(
     bpf_source_file: &str,
-    output_file: &str,
+    binary_file: &Option<String>,
+    out_dir: &str,
     elf_section_name: &str,
     test_execution: bool,
 ) {
@@ -63,11 +76,11 @@ fn compile_rbpf(
         .expect("You need to provide the .c source file")
         .to_string();
 
-    let obj_file = format!("./out/{}.o", base_name);
+    let obj_file = format!("{}/{}.o", out_dir, base_name);
 
     // We need to ensure that the out directory exists
-    if !PathBuf::from("./out").exists() {
-        std::fs::create_dir("./out").expect("Failed to create the out directory.");
+    if !PathBuf::from(out_dir).exists() {
+        std::fs::create_dir(out_dir).expect("Failed to create the object file directory.");
     }
 
     // The first compilation step involves using clang and llvm to compile
@@ -109,8 +122,15 @@ fn compile_rbpf(
     // Extract the program from the elf section.
     let prog = &text_scn.data;
 
+    let output_file_name = if let Some(binary_file) = binary_file {
+        binary_file.clone()
+    } else {
+        let binary_file = format!("./{}.bin", base_name);
+        binary_file
+    };
+
     // The .bin file will contain the bytecode compatible with rbpf.
-    let mut f = File::create(format!("./{}.bin", base_name)).unwrap();
+    let mut f = File::create(output_file_name).unwrap();
     f.write_all(prog.as_slice()).unwrap();
 
     if test_execution {

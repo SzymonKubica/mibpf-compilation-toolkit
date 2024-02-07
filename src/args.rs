@@ -12,9 +12,15 @@ pub enum Action {
         #[arg(long, default_value_t = String::from("rBPF"))]
         target: String,
 
-        /// The name of the file resulting from the compilation
-        #[arg(long, default_value_t = String::from("a.bin"))]
-        output_file: String,
+        /// Optional override for the name of the file resulting from the compilation
+        /// It defaults to <source_file>.bin
+        #[arg(long)]
+        binary_file: Option<String>,
+
+        /// Directory for the object files
+        #[arg(long, default_value_t = String::from("./out"))]
+        out_dir: String,
+
 
         /// Name of the elf section of the main function in the eBPF program.
         #[arg(long, default_value_t = String::from(".main"))]
