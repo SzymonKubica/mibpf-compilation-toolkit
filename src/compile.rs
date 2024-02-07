@@ -40,7 +40,7 @@ pub fn handle_compile(args: &Action) {
     {
         let vm_target = VmTarget::from(target.clone());
         match vm_target {
-            VmTarget::FemtoContainers => compile_fc(bpf_source_file, binary_file),
+            VmTarget::FemtoContainers => compile_fc(bpf_source_file, out_dir, binary_file),
             VmTarget::RBPF => compile_rbpf(
                 bpf_source_file,
                 binary_file,
@@ -54,8 +54,50 @@ pub fn handle_compile(args: &Action) {
     }
 }
 
-fn compile_fc(bpf_source_file: &str, binary_file: &Option<String>) {
-    todo!()
+fn compile_fc(bpf_source_file: &str, out_dir: &str, binary_file: &Option<String>) {
+    let message = "Compiling for Femto-Containers requires header files that \
+                   are included in RIOT. Because of this, the compilation \
+                   process needs to use the Makefile setup used by RIOT. \
+                   You need to ensure that the file {file-name} \
+                   you are trying to compile is located inside of a directory \
+                   which contains a Makefile that points to RIOT base directory. \
+                   See bpf/femto-container directory for an example";
+    let formatted_message = message.replace("{file-name}", bpf_source_file);
+    println!("[WARNING]\n{}", formatted_message);
+
+    let source_path = PathBuf::from(bpf_source_file);
+    let source_directory = source_path.parent().unwrap();
+
+    let _ = Command::new("make")
+        .arg("-C")
+        .arg(source_directory.to_str().unwrap())
+        .arg("clean")
+        .arg("all")
+        .spawn()
+        .expect("Failed to compile the eBPF bytecode.")
+        .wait();
+
+    if let Some(file_name) = binary_file {
+        let base_name = bpf_source_file
+            .split("/")
+            .last()
+            .unwrap()
+            .split(".")
+            .nth(0)
+            .expect("You need to provide the .c source file")
+            .to_string();
+
+        let _ = Command::new("mv")
+            .arg(format!(
+                "{}/{}.bin",
+                source_directory.to_str().unwrap(),
+                base_name
+            ))
+            .arg(file_name)
+            .spawn()
+            .expect("Failed to copy the binary file.")
+            .wait();
+    }
 }
 
 fn compile_rbpf(
