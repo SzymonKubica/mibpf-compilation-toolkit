@@ -26,13 +26,11 @@ impl fmt::Display for VmTarget {
     }
 }
 
-pub fn handle_compile(
-    bpf_source_file: &str,
-    target: VmTarget,
-    output_file: &str,
-    elf_section_name: &str,
-    test_execution: bool,
-) {
+pub fn handle_compile(args: args::Action::Compile) {
+    let bpf_source_file = args.bpf_source_file;
+    let output_file = args.output_file;
+    let elf_section_name = args.elf_section_name;
+    let test_execution = args.test_execution;
     match target {
         VmTarget::FemtoContainers => compile_fc(bpf_source_file, output_file),
         VmTarget::RBPF => compile_rbpf(
