@@ -15,6 +15,16 @@ pub enum Action {
         /// The name of the file resulting from the compilation
         #[arg(long, default_value_t = String::from("a.bin"))]
         output_file: String,
+
+        /// Name of the elf section of the main function in the eBPF program.
+        #[arg(long, default_value_t = String::from(".main"))]
+        elf_section_name: String,
+
+
+        /// Controlls whether the bytecode is executed in a native vm after compilation.
+        #[arg(long, default_value_t = false)]
+        test_execution: bool,
+
     },
 
     /// Sign the eBPF binary for SUIT update protocol. Generates  the manifest,
