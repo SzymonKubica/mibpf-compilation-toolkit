@@ -9,7 +9,6 @@ pub async fn handle_execute(args: &crate::args::Action) {
         suit_storage_slot,
     } = args
     {
-
         let vm_target = VmTarget::from(target.as_str());
 
         let endpoint = match vm_target {

@@ -75,6 +75,53 @@ pub enum Action {
         # [arg(long, default_value_t = String::from("suit_manifest.signed"))]
         suit_manifest: String,
     },
+    /// Compiles, signs and initiates firmware pull in one step.
+    Deploy {
+        /// Name of the file containing the eBPF source code.
+        #[arg(long)]
+        bpf_source_file: String,
+
+        /// Target version of the eBPF vm. Available options: Femto-Containers, rBPF
+        #[arg(long, default_value_t = String::from("rBPF"))]
+        target: String,
+
+        /// Directory for the object files
+        #[arg(long, default_value_t = String::from("./out"))]
+        out_dir: String,
+
+        /// Name of the elf section of the main function in the eBPF program.
+        /// Only applies for the rbpf code snippets.
+        #[arg(long, default_value_t = String::from(".main"))]
+        elf_section_name: String,
+
+        /// Network interface of the machine hosting the CoAP fileserver.
+        /// Used to find the IPv6 address of the fileserver.
+        #[arg(long, default_value_t = String::from("wlan0"))]
+        host_network_interface: String,
+
+        /// Name of the target microcontroller board.
+        #[arg(long, default_value_t = String::from("nucleo-f439zi"))]
+        board_name: String,
+
+        /// Name of the coaproot directory from the CoAP fileserver will serve
+        /// the files. The signed binary and manifest will be placed there
+        #[arg(long, default_value_t = String::from("coaproot"))]
+        coaproot_dir: String,
+
+        /// SUIT storage slot (0 or 1) where the signed binary blob is intended
+        /// bo be loaded.
+        #[arg(long, short, default_value_t = 0)]
+        suit_storage_slot: i32,
+
+        /// IPv6 address of the RIOT instance.
+        #[arg(long)]
+        riot_ipv6_addr: String,
+
+        /// IPv6 address of the desktop machine hosting the CoAP fileserver with
+        /// the binary blob and SUIT manifest.
+        #[arg(long)]
+        host_ipv6_addr: String,
+    },
     /// Sends a request to the RIOT instance to execute the loaded eBPF bytecode
     /// from a specified SUIT storage slot.
     Execute {

@@ -1,5 +1,4 @@
 use coap::UdpCoAPClient;
-use coap_lite::{CoapRequest, RequestType as Method};
 
 use crate::args::Action;
 
