@@ -13,15 +13,16 @@ pub enum VmTarget {
     RBPF,
 }
 
-impl From<String> for VmTarget {
-    fn from(s: String) -> Self {
-        match s.as_str() {
+impl From<&str> for VmTarget {
+    fn from(s: &str) -> Self {
+        match s {
             "Femto-Containers" => VmTarget::FemtoContainers,
             "rBPF" => VmTarget::RBPF,
             _ => panic!("Invalid vm target: {}", s),
         }
     }
 }
+
 
 impl fmt::Display for VmTarget {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
@@ -39,7 +40,7 @@ pub fn handle_compile(args: &Action) {
         test_execution,
     } = args
     {
-        let vm_target = VmTarget::from(target.clone());
+        let vm_target = VmTarget::from(target.as_str());
         match vm_target {
             VmTarget::FemtoContainers => compile_fc(bpf_source_file, out_dir, binary_file),
             VmTarget::RBPF => compile_rbpf(

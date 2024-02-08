@@ -64,6 +64,7 @@ pub enum Action {
         /// IPv6 address of the RIOT instance.
         #[arg(long)]
         riot_ipv6_addr: String,
+
         /// IPv6 address of the desktop machine hosting the CoAP fileserver with
         /// the binary blob and SUIT manifest.
         #[arg(long)]
@@ -76,7 +77,20 @@ pub enum Action {
     },
     /// Sends a request to the RIOT instance to execute the loaded eBPF bytecode
     /// from a specified SUIT storage slot.
-    Execute {},
+    Execute {
+        /// IPv6 address of the RIOT instance.
+        #[arg(long)]
+        riot_ipv6_addr: String,
+
+        /// Target version of the eBPF vm. Available options: Femto-Containers, rBPF
+        #[arg(long, default_value_t = String::from("rBPF"))]
+        target: String,
+
+        /// SUIT storage slot (0 or 1) where the signed binary blob is intended
+        /// bo be loaded.
+        #[arg(long, short, default_value_t = 0)]
+        suit_storage_slot: i32,
+    },
 }
 
 /// Tools for compiling, signing, loading and executing eBPF programs for
