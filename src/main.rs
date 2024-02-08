@@ -3,7 +3,6 @@ use compile::handle_compile;
 use execute::handle_execute;
 use pull::handle_pull;
 use sign::handle_sign;
-use tokio::main;
 
 mod args;
 mod compile;
@@ -24,6 +23,6 @@ async fn main() {
         args::Action::Compile { .. } => handle_compile(&args.command),
         args::Action::Sign { .. } => handle_sign(&args.command),
         args::Action::Pull { .. } => handle_pull(&args.command).await,
-        args::Action::Execute { .. } => handle_execute(&args.command),
+        args::Action::Execute { .. } => handle_execute(&args.command).await,
     }
 }
