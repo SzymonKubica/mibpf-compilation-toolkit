@@ -12,7 +12,7 @@ pub async fn handle_execute(args: &crate::args::Action) {
         let vm_target = VmTarget::from(target.as_str());
 
         let endpoint = match vm_target {
-            VmTarget::FemtoContainers => "femto-containers",
+            VmTarget::FemtoContainers => "femto-container",
             VmTarget::RBPF => "rbpf",
         };
 
