@@ -22,7 +22,8 @@ pub enum Action {
         out_dir: String,
 
         /// Name of the elf section of the main function in the eBPF program.
-        #[arg(long, default_value_t = String::from(".main"))]
+        #[arg(long, default_value_t = String::from(".text"))]
+        // Defaults to .text to be consistent with Femto-Containers
         elf_section_name: String,
 
         /// Controlls whether the bytecode is executed in a native vm after compilation.

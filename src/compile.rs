@@ -15,7 +15,7 @@ pub enum VmTarget {
 
 impl From<&str> for VmTarget {
     fn from(s: &str) -> Self {
-        match s {
+        match s.as_str() {
             "Femto-Containers" => VmTarget::FemtoContainers,
             "rBPF" => VmTarget::RBPF,
             _ => panic!("Invalid vm target: {}", s),
@@ -40,7 +40,7 @@ pub fn handle_compile(args: &Action) {
         test_execution,
     } = args
     {
-        let vm_target = VmTarget::from(target.as_str());
+        let vm_target = VmTarget::from(target.clone());
         match vm_target {
             VmTarget::FemtoContainers => compile_fc(bpf_source_file, out_dir, binary_file),
             VmTarget::RBPF => compile_rbpf(
@@ -147,29 +147,8 @@ fn compile_rbpf(
         std::fs::create_dir(out_dir).expect("Failed to create the object file directory.");
     }
 
-    // TODO: migrate those scripts to code for better flexibility.
-    // The first compilation step involves using clang and llvm to compile
-    // the eBPF bytecode exactly like it is done in case of the Linux kernel
-    // eBPF programs.
-    let _ = Command::new("bash")
-        .arg("./scripts/compile.sh")
-        .arg(file_name)
-        .arg(obj_file.clone())
-        .spawn()
-        .expect("Failed to compile the eBPF bytecode.")
-        .wait();
+    compile_and_patch_rbpf_bytecode(file_name, &obj_file);
 
-    // TODO: make this step fully generic instead of manual hard-coded string
-    // replacement
-    // The second compilation step patches the bytecode to correct the
-    // packet data offsets and replace the instructions so that the packet data
-    // is loaded as 8-byte double words.
-    let _ = Command::new("bash")
-        .arg("./scripts/adjust-bytecode.sh")
-        .arg(obj_file.clone())
-        .spawn()
-        .expect("Failed to patch the eBPF bytecode.")
-        .wait();
 
     // Once the bytecode is patched and the offsets are adjusted correctly
     // we need to strip off the main program section from the object file.
@@ -203,6 +182,32 @@ fn compile_rbpf(
     if test_execution {
         test_program_execution(prog);
     }
+}
+
+fn compile_and_patch_rbpf_bytecode(file_name: &str, obj_file: &str){
+    // TODO: migrate those scripts to code for better flexibility.
+    // The first compilation step involves using clang and llvm to compile
+    // the eBPF bytecode exactly like it is done in case of the Linux kernel
+    // eBPF programs.
+    let _ = Command::new("bash")
+        .arg("./scripts/compile.sh")
+        .arg(file_name)
+        .arg(obj_file.clone())
+        .spawn()
+        .expect("Failed to compile the eBPF bytecode.")
+        .wait();
+
+    // TODO: make this step fully generic instead of manual hard-coded string
+    // replacement
+    // The second compilation step patches the bytecode to correct the
+    // packet data offsets and replace the instructions so that the packet data
+    // is loaded as 8-byte double words.
+    let _ = Command::new("bash")
+        .arg("./scripts/adjust-bytecode.sh")
+        .arg(obj_file.clone())
+        .spawn()
+        .expect("Failed to patch the eBPF bytecode.")
+        .wait();
 }
 
 /// Allows for testing generic programs that are loaded into the rBPF VM.
@@ -255,3 +260,4 @@ fn test_program_execution(program: &Vec<u8>) {
     let res = vm.execute_program(&mut packet_with_payload).unwrap();
     println!("Program returned: {:?} ({:#x})", res, res)
 }
+
