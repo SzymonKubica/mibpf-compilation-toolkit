@@ -143,6 +143,11 @@ pub enum Action {
         /// bo be loaded.
         #[arg(long, short, default_value_t = 0)]
         suit_storage_slot: i32,
+
+        /// Network interface of the machine hosting the CoAP fileserver.
+        /// Used to find the IPv6 address of the fileserver.
+        #[arg(long, default_value_t = String::from("wlan0"))]
+        host_network_interface: String,
     },
 }
 

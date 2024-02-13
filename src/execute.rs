@@ -7,6 +7,7 @@ pub async fn handle_execute(args: &crate::args::Action) {
         riot_ipv6_addr,
         target,
         suit_storage_slot,
+        host_network_interface,
     } = args
     {
         let vm_target = VmTarget::from(target.as_str());
@@ -16,7 +17,10 @@ pub async fn handle_execute(args: &crate::args::Action) {
             VmTarget::RBPF => "rbpf",
         };
 
-        let url = format!("coap://[{}]/{}/exec", riot_ipv6_addr, endpoint);
+        let url = format!(
+            "coap://[{}%{}]/{}/exec",
+            riot_ipv6_addr, host_network_interface, endpoint
+        );
         println!("Sending a request to the url: {}", url);
 
         let data = format!("{}", suit_storage_slot);
