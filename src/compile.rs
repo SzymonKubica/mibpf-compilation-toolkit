@@ -192,7 +192,7 @@ fn compile_and_patch_rbpf_bytecode(file_name: &str, obj_file: &str){
     let _ = Command::new("bash")
         .arg("./scripts/compile.sh")
         .arg(file_name)
-        .arg(obj_file.clone())
+        .arg(obj_file)
         .spawn()
         .expect("Failed to compile the eBPF bytecode.")
         .wait();
@@ -204,7 +204,7 @@ fn compile_and_patch_rbpf_bytecode(file_name: &str, obj_file: &str){
     // is loaded as 8-byte double words.
     let _ = Command::new("bash")
         .arg("./scripts/adjust-bytecode.sh")
-        .arg(obj_file.clone())
+        .arg(obj_file)
         .spawn()
         .expect("Failed to patch the eBPF bytecode.")
         .wait();
