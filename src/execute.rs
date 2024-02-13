@@ -1,4 +1,4 @@
-use coap::UdpCoAPClient;
+use std::process::Command;
 
 use crate::{args::Action, compile::VmTarget};
 
@@ -17,22 +17,20 @@ pub async fn handle_execute(args: &crate::args::Action) {
             VmTarget::RBPF => "rbpf",
         };
 
-        let url = format!(
-            "coap://[{}%{}]/{}/exec",
-            riot_ipv6_addr, host_network_interface, endpoint
-        );
+        let url = format!("coap://[{}%{}]/{}/exec", riot_ipv6_addr, host_network_interface, endpoint);
+
         println!("Sending a request to the url: {}", url);
 
-        let data = format!("{}", suit_storage_slot);
+        let _ = Command::new("aiocoap-client")
+            .arg("-m")
+            .arg("POST")
+            .arg(url.clone())
+            .arg("--payload")
+            .arg(suit_storage_slot.to_string())
+            .spawn()
+            .expect("Failed to send the request.");
 
-        let response = UdpCoAPClient::post(url.as_ref(), data.as_bytes().to_vec())
-            .await
-            .unwrap();
 
-        println!(
-            "Server reply: {}",
-            String::from_utf8(response.message.payload).unwrap()
-        );
     } else {
         panic!("Invalid action args: {:?}", args);
     }

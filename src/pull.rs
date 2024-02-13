@@ -1,4 +1,4 @@
-use coap::UdpCoAPClient;
+use std::process::Command;
 
 use crate::args::Action;
 
@@ -15,17 +15,18 @@ pub async fn handle_pull(args: &crate::args::Action) {
             riot_ipv6_addr, host_network_interface
         );
         println!("Sending a request to the url: {}", url);
-
         let data = format!("{};{}", host_ipv6_addr, suit_manifest);
 
-        let response = UdpCoAPClient::post(url.as_ref(), data.as_bytes().to_vec())
-            .await
-            .unwrap();
+        let _ = Command::new("aiocoap-client")
+            .arg("-m")
+            .arg("POST")
+            .arg(url.clone())
+            .arg("--payload")
+            .arg(data.clone())
+            .spawn()
+            .expect("Failed to send the request.")
+            .wait();
 
-        println!(
-            "Server reply: {}",
-            String::from_utf8(response.message.payload).unwrap()
-        );
     } else {
         panic!("Invalid action args: {:?}", args);
     }
