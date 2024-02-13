@@ -15,7 +15,7 @@ pub enum VmTarget {
 
 impl From<&str> for VmTarget {
     fn from(s: &str) -> Self {
-        match s.as_str() {
+        match s {
             "Femto-Containers" => VmTarget::FemtoContainers,
             "rBPF" => VmTarget::RBPF,
             _ => panic!("Invalid vm target: {}", s),
@@ -40,7 +40,7 @@ pub fn handle_compile(args: &Action) {
         test_execution,
     } = args
     {
-        let vm_target = VmTarget::from(target.clone());
+        let vm_target = VmTarget::from(target.as_str());
         match vm_target {
             VmTarget::FemtoContainers => compile_fc(bpf_source_file, out_dir, binary_file),
             VmTarget::RBPF => compile_rbpf(

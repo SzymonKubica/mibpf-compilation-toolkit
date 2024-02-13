@@ -75,6 +75,11 @@ pub enum Action {
         /// root directory.
         # [arg(long, default_value_t = String::from("suit_manifest.signed"))]
         suit_manifest: String,
+
+        /// Network interface of the machine hosting the CoAP fileserver.
+        /// Used to find the IPv6 address of the fileserver.
+        #[arg(long, default_value_t = String::from("wlan0"))]
+        host_network_interface: String,
     },
     /// Compiles, signs and initiates firmware pull in one step.
     Deploy {

@@ -7,9 +7,13 @@ pub async fn handle_pull(args: &crate::args::Action) {
         riot_ipv6_addr,
         host_ipv6_addr,
         suit_manifest,
+        host_network_interface,
     } = args
     {
-        let url = format!("coap://[{}]/suit/pull", riot_ipv6_addr);
+        let url = format!(
+            "coap://[{}%{}]/suit/pull",
+            riot_ipv6_addr, host_network_interface
+        );
         println!("Sending a request to the url: {}", url);
 
         let data = format!("{};{}", host_ipv6_addr, suit_manifest);

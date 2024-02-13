@@ -35,6 +35,7 @@ pub async fn handle_deploy(args: &crate::args::Action) {
             riot_ipv6_addr: riot_ipv6_addr.to_string(),
             host_ipv6_addr: host_ipv6_addr.to_string(),
             suit_manifest: format!("suit_manifest{}.signed", suit_storage_slot),
+            host_network_interface: host_network_interface.to_string()
         })
         .await;
     } else {
