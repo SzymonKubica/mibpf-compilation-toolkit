@@ -4,20 +4,21 @@ use std::fs::File;
 use std::io::Write;
 use std::{fmt, fs};
 use std::{path::PathBuf, process::Command};
+use serde::Serialize;
 
 use crate::args::Action;
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub enum VmTarget {
-    FemtoContainers,
-    RBPF,
+    FemtoContainer,
+    Rbpf,
 }
 
 impl From<&str> for VmTarget {
     fn from(s: &str) -> Self {
         match s {
-            "Femto-Containers" => VmTarget::FemtoContainers,
-            "rBPF" => VmTarget::RBPF,
+            "FemtoContainer" => VmTarget::FemtoContainer,
+            "rBPF" => VmTarget::Rbpf,
             _ => panic!("Invalid vm target: {}", s),
         }
     }
@@ -42,8 +43,8 @@ pub fn handle_compile(args: &Action) {
     {
         let vm_target = VmTarget::from(target.as_str());
         match vm_target {
-            VmTarget::FemtoContainers => compile_fc(bpf_source_file, out_dir, binary_file),
-            VmTarget::RBPF => compile_rbpf(
+            VmTarget::FemtoContainer => compile_fc(bpf_source_file, out_dir, binary_file),
+            VmTarget::Rbpf => compile_rbpf(
                 bpf_source_file,
                 binary_file,
                 out_dir,
