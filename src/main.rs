@@ -7,15 +7,14 @@ use sign::handle_sign;
 
 mod args;
 mod compile;
-mod execute;
 mod deploy;
+mod execute;
 mod pull;
 mod sign;
 
 extern crate clap;
-extern crate rbpf;
 extern crate coap;
-
+extern crate rbpf;
 
 #[tokio::main]
 async fn main() {
@@ -27,5 +26,6 @@ async fn main() {
         args::Action::Pull { .. } => handle_pull(&args.command).await,
         args::Action::Execute { .. } => handle_execute(&args.command).await,
         args::Action::Deploy { .. } => handle_deploy(&args.command).await,
+        args::Action::EmulateExecution { .. } => handle_emulate(&args.command),
     }
 }

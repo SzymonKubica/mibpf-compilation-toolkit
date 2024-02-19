@@ -25,10 +25,6 @@ pub enum Action {
         #[arg(long, default_value_t = String::from(".text"))]
         // Defaults to .text to be consistent with Femto-Containers
         elf_section_name: String,
-
-        /// Controlls whether the bytecode is executed in a native vm after compilation.
-        #[arg(long, default_value_t = false)]
-        test_execution: bool,
     },
 
     /// Sign the eBPF binary for SUIT update protocol. Generates  the manifest,
@@ -148,6 +144,23 @@ pub enum Action {
         /// Used to find the IPv6 address of the fileserver.
         #[arg(long, default_value_t = String::from("wlan0"))]
         host_network_interface: String,
+    },
+    // Runs the rBPF VM on the given binary file.
+    EmulateExecution {
+        /// Target version of the eBPF binary. Available options: Femto-Containers, rBPF
+        /// In case of femto-containers, the binary should be prepared with their
+        /// gen_rbp.py script
+        #[arg(long, default_value_t = String::from("rBPF"))]
+        target: String,
+
+        /// Name of the elf section of the main function in the eBPF program.
+        #[arg(long, default_value_t = String::from(".text"))]
+        // Defaults to .text to be consistent with Femto-Containers
+        elf_section_name: String,
+
+        /// Name of the binary file to be executed in the emulated VM environment.
+        #[arg(long)]
+        binary_file: Option<String>,
     },
 }
 
