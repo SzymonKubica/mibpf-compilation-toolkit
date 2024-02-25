@@ -144,6 +144,10 @@ pub enum Action {
         /// Used to find the IPv6 address of the fileserver.
         #[arg(long, default_value_t = String::from("wlan0"))]
         host_network_interface: String,
+
+        /// Whether the executing program should get access to the CoAP packet
+        #[arg(long, default_value_t = false)]
+        execute_on_coap: bool,
     },
     // Runs the rBPF VM on the given binary file.
     EmulateExecution {

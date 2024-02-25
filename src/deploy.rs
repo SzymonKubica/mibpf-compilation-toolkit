@@ -20,7 +20,6 @@ pub async fn handle_deploy(args: &crate::args::Action) {
             binary_file: Some("program.bin".to_string()),
             out_dir: out_dir.to_string(),
             elf_section_name: elf_section_name.to_string(),
-            test_execution: false,
         });
 
         handle_sign(&Action::Sign {

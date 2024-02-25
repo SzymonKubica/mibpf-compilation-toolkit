@@ -16,6 +16,7 @@ pub async fn handle_execute(args: &crate::args::Action) {
         target,
         suit_storage_slot,
         host_network_interface,
+        execute_on_coap,
     } = args
     {
         let vm_target = VmTarget::from(target.as_str());
@@ -25,9 +26,30 @@ pub async fn handle_execute(args: &crate::args::Action) {
             suit_location: *suit_storage_slot as usize,
         };
 
+        // TODO:make it clean
+        if !*execute_on_coap {
+            let url = format!(
+                "coap://[{}%{}]/vm/spawn",
+                riot_ipv6_addr, host_network_interface
+            );
+
+            println!("Sending a request to the url: {}", url);
+
+            let _ = Command::new("aiocoap-client")
+                .arg("-m")
+                .arg("POST")
+                .arg(url.clone())
+                .arg("--payload")
+                .arg(serde_json::to_string(&request).unwrap())
+                .spawn()
+                .expect("Failed to send the request.");
+        }
+
+        let endpoint_path = if *execute_on_coap { "/coap-pkt" } else { "" };
+
         let url = format!(
-            "coap://[{}%{}]/vm/exec/coap-pkt",
-            riot_ipv6_addr, host_network_interface
+            "coap://[{}%{}]/vm/exec{}",
+            riot_ipv6_addr, host_network_interface, endpoint_path
         );
 
         println!("Sending a request to the url: {}", url);
@@ -56,7 +78,7 @@ pub fn handle_emulate(args: &crate::args::Action) {
         binary_file,
     } = args
     {
-        let path = PathBuf::from(binary_file.unwrap());
+        let path = PathBuf::from(binary_file.clone().unwrap());
         let file = match elf::File::open_path(&path) {
             Ok(f) => f,
             Err(e) => panic!("Error: {:?}", e),

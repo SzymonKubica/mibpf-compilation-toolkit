@@ -1,7 +1,7 @@
 use clap::Parser;
 use compile::handle_compile;
 use deploy::handle_deploy;
-use execute::handle_execute;
+use execute::{handle_execute, handle_emulate};
 use pull::handle_pull;
 use sign::handle_sign;
 

@@ -1,4 +1,3 @@
-use rbpf::helpers;
 use std::ffi::OsStr;
 use std::fs::File;
 use std::io::Write;
@@ -38,7 +37,6 @@ pub fn handle_compile(args: &Action) {
         binary_file,
         out_dir,
         elf_section_name,
-        test_execution,
     } = args
     {
         let vm_target = VmTarget::from(target.as_str());
@@ -49,7 +47,6 @@ pub fn handle_compile(args: &Action) {
                 binary_file,
                 out_dir,
                 elf_section_name,
-                *test_execution,
             ),
         }
     } else {
@@ -128,7 +125,6 @@ fn compile_rbpf(
     binary_file: &Option<String>,
     out_dir: &str,
     elf_section_name: &str,
-    test_execution: bool,
 ) {
     let file_name = bpf_source_file;
 
