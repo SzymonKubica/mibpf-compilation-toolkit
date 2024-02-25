@@ -43,6 +43,7 @@ pub async fn handle_execute(args: &crate::args::Action) {
                 .arg(serde_json::to_string(&request).unwrap())
                 .spawn()
                 .expect("Failed to send the request.");
+            return
         }
 
         let endpoint_path = if *execute_on_coap { "/coap-pkt" } else { "" };
