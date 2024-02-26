@@ -1,6 +1,17 @@
 use std::process::Command;
 
+use serde::Serialize;
+
 use crate::args::Action;
+
+/// The handler expects to get a request which consists of the IPv6 address of
+/// the machine running the CoAP fileserver and the name of the manifest file
+/// specifying which binary needs to be pulled.
+#[derive(Serialize)]
+struct SuitPullRequest {
+    pub ip_addr: String,
+    pub manifest: String,
+}
 
 pub async fn handle_pull(args: &crate::args::Action) {
     if let Action::Pull {
@@ -15,18 +26,21 @@ pub async fn handle_pull(args: &crate::args::Action) {
             riot_ipv6_addr, host_network_interface
         );
         println!("Sending a request to the url: {}", url);
-        let data = format!("{};{}", host_ipv6_addr, suit_manifest);
+        let request = SuitPullRequest {
+            ip_addr: host_ipv6_addr.clone(),
+            manifest: suit_manifest.clone(),
+        };
+
 
         let _ = Command::new("aiocoap-client")
             .arg("-m")
             .arg("POST")
             .arg(url.clone())
             .arg("--payload")
-            .arg(data.clone())
+            .arg(serde_json::to_string(&request).unwrap())
             .spawn()
             .expect("Failed to send the request.")
             .wait();
-
     } else {
         panic!("Invalid action args: {:?}", args);
     }
