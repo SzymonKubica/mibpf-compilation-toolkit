@@ -1,13 +1,13 @@
 use std::process::Command;
 
-use serde::Serialize;
+use serde::{Serialize, Deserialize};
 
 use crate::args::Action;
 
 /// The handler expects to get a request which consists of the IPv6 address of
 /// the machine running the CoAP fileserver and the name of the manifest file
 /// specifying which binary needs to be pulled.
-#[derive(Serialize)]
+#[derive(Serialize, Deserialize, Debug)]
 struct SuitPullRequest {
     pub ip_addr: String,
     pub manifest: String,
@@ -31,13 +31,15 @@ pub async fn handle_pull(args: &crate::args::Action) {
             manifest: suit_manifest.clone(),
         };
 
+        let req_str = serde_json::to_string(&request).unwrap();
+        println!("Checking deserialize: {:?}", serde_json::from_str::<SuitPullRequest>(&req_str));
 
         let _ = Command::new("aiocoap-client")
             .arg("-m")
             .arg("POST")
             .arg(url.clone())
             .arg("--payload")
-            .arg(serde_json::to_string(&request).unwrap())
+            .arg(req_str)
             .spawn()
             .expect("Failed to send the request.")
             .wait();
