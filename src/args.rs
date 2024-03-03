@@ -166,6 +166,15 @@ pub enum Action {
         #[arg(long)]
         binary_file: Option<String>,
     },
+    // Performs bytecode-patching similar to the Femto-Containers gen_rbf script.
+    Relocate {
+        /// Name of the file containing the eBPF source code.
+        #[arg(long)]
+        source_object_file: String,
+        /// Name of the binary file to be generated
+        #[arg(long)]
+        binary_file: Option<String>,
+    },
 }
 
 /// Tools for compiling, signing, loading and executing eBPF programs for

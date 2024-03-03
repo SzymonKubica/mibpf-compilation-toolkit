@@ -1,8 +1,9 @@
 use clap::Parser;
 use compile::handle_compile;
 use deploy::handle_deploy;
-use execute::{handle_execute, handle_emulate};
+use execute::{handle_emulate, handle_execute};
 use pull::handle_pull;
+use relocate::handle_relocate;
 use sign::handle_sign;
 
 mod args;
@@ -10,6 +11,7 @@ mod compile;
 mod deploy;
 mod execute;
 mod pull;
+mod relocate;
 mod sign;
 
 extern crate clap;
@@ -27,5 +29,6 @@ async fn main() {
         args::Action::Execute { .. } => handle_execute(&args.command).await,
         args::Action::Deploy { .. } => handle_deploy(&args.command).await,
         args::Action::EmulateExecution { .. } => handle_emulate(&args.command),
+        args::Action::Relocate { .. } => handle_relocate(&args.command),
     }
 }
