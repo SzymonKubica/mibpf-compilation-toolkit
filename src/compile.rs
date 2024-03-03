@@ -128,55 +128,55 @@ fn compile_rbpf(
     out_dir: &str,
     elf_section_name: &str,
 ) {
-    let file_name = bpf_source_file;
+  //  let file_name = bpf_source_file;
 
-    let base_name = file_name
-        .split("/")
-        .last()
-        .unwrap()
-        .split(".")
-        .nth(0)
-        .expect("You need to provide the .c source file")
-        .to_string();
+  //  let base_name = file_name
+  //      .split("/")
+  //      .last()
+  //      .unwrap()
+  //      .split(".")
+  //      .nth(0)
+  //      .expect("You need to provide the .c source file")
+  //      .to_string();
 
-    let obj_file = format!("{}/{}.o", out_dir, base_name);
+  //  let obj_file = format!("{}/{}.o", out_dir, base_name);
 
-    // We need to ensure that the out directory exists
-    if !PathBuf::from(out_dir).exists() {
-        std::fs::create_dir(out_dir).expect("Failed to create the object file directory.");
-    }
+  //  // We need to ensure that the out directory exists
+  //  if !PathBuf::from(out_dir).exists() {
+  //      std::fs::create_dir(out_dir).expect("Failed to create the object file directory.");
+  //  }
 
-    compile_and_patch_rbpf_bytecode(file_name, &obj_file);
+  //  compile_and_patch_rbpf_bytecode(file_name, &obj_file);
 
 
-    // Once the bytecode is patched and the offsets are adjusted correctly
-    // we need to strip off the main program section from the object file.
-    // This is because only this part is being used by the rbpf VM.
+  //  // Once the bytecode is patched and the offsets are adjusted correctly
+  //  // we need to strip off the main program section from the object file.
+  //  // This is because only this part is being used by the rbpf VM.
 
-    let path = PathBuf::from(obj_file);
-    let file = match elf::File::open_path(&path) {
-        Ok(f) => f,
-        Err(e) => panic!("Error: {:?}", e),
-    };
+  //  let path = PathBuf::from(obj_file);
+  //  let file = match elf::File::open_path(&path) {
+  //      Ok(f) => f,
+  //      Err(e) => panic!("Error: {:?}", e),
+  //  };
 
-    let text_scn = match file.get_section(elf_section_name) {
-        Some(s) => s,
-        None => panic!("Failed to look up elf section"),
-    };
+  //  let text_scn = match file.get_section(elf_section_name) {
+  //      Some(s) => s,
+  //      None => panic!("Failed to look up elf section"),
+  //  };
 
-    // Extract the program from the elf section.
-    let prog = &text_scn.data;
+  //  // Extract the program from the elf section.
+  //  let prog = &text_scn.data;
 
-    let output_file_name = if let Some(binary_file) = binary_file {
-        binary_file.clone()
-    } else {
-        let binary_file = format!("./{}.bin", base_name);
-        binary_file
-    };
+  //  let output_file_name = if let Some(binary_file) = binary_file {
+  //      binary_file.clone()
+  //  } else {
+  //      let binary_file = format!("./{}.bin", base_name);
+  //      binary_file
+  //  };
 
-    // The .bin file will contain the bytecode compatible with rbpf.
-    let mut f = File::create(output_file_name).unwrap();
-    f.write_all(prog.as_slice()).unwrap();
+  //  // The .bin file will contain the bytecode compatible with rbpf.
+  //  let mut f = File::create(output_file_name).unwrap();
+  //  f.write_all(prog.as_slice()).unwrap();
 }
 
 fn compile_and_patch_rbpf_bytecode(file_name: &str, obj_file: &str){
