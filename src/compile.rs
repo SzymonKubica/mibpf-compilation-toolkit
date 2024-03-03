@@ -67,8 +67,10 @@ fn compile_fc(bpf_source_file: &str, out_dir: &str, binary_file: &Option<String>
 
     let source_path = PathBuf::from(bpf_source_file);
     let source_directory = source_path.parent().unwrap();
+    let base_name = source_path.components().last().unwrap().as_os_str();
 
     let _ = Command::new("make")
+        .env("RBPF_SOURCES", base_name)
         .arg("-C")
         .arg(source_directory.to_str().unwrap())
         .arg("clean")
