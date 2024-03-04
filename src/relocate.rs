@@ -182,7 +182,8 @@ pub fn handle_relocate(args: &crate::args::Action) {
                 functions_len: symbol_structs.len() as u32,
             };
 
-            let header_bytes = unsafe { std::slice::from_raw_parts(&header as *const _ as *const u8, 28) };
+            let header_bytes =
+                unsafe { std::slice::from_raw_parts(&header as *const _ as *const u8, 28) };
             let mut binary_data = Vec::from(header_bytes);
             binary_data.extend(data);
             binary_data.extend(rodata);
