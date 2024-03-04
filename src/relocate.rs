@@ -129,8 +129,17 @@ pub fn handle_relocate(args: &crate::args::Action) {
                     flags: flags as u16,
                     location_offset: text_offset as u16,
                 });
+
             }
 
+            #[derive(Debug)]
+            #[repr(C, packed)]
+            struct RelocatedCall {
+                instruction_offset: u32,
+                function_text_offset: u32,
+            }
+
+            let mut relocated_calls = vec![];
             // Handle relocations
             for section in &binary.section_headers {
                 if section.sh_type == goblin::elf::section_header::SHT_REL {
@@ -154,6 +163,19 @@ pub fn handle_relocate(args: &crate::args::Action) {
                                     "relocation at instruction {} for section {} at {}",
                                     reloc.r_offset, name, symbol.st_value
                                 )
+                            } else if symbol.st_type() == STT_FUNC {
+                                let name = binary.strtab.get_at(symbol.st_name).unwrap();
+                                println!(
+                                    "relocation at instruction {} for function {} at {}",
+                                    reloc.r_offset, name, symbol.st_value
+                                );
+                                relocated_calls.push(RelocatedCall {
+                                    instruction_offset: reloc.r_offset as u32,
+                                    function_text_offset: symbol.st_value as u32,
+                                });
+                                // Now we need to maintain the information that at
+                                // this instruction, we need to relocate to the function
+                                // at the text section offset tiven by the symbol.st_value
                             } else {
                                 let name = binary.strtab.get_at(symbol.st_name).unwrap();
                                 let section_name = binary.strtab.get_at(section.sh_name).unwrap();
@@ -193,6 +215,13 @@ pub fn handle_relocate(args: &crate::args::Action) {
                 let symbol_bytes =
                     unsafe { std::slice::from_raw_parts(&symbol as *const _ as *const u8, 6) };
                 binary_data.extend(symbol_bytes);
+            }
+
+            for call in relocated_calls {
+                println!("Adding a relocated call: {:?}", call);
+                let call_bytes =
+                    unsafe { std::slice::from_raw_parts(&call as *const _ as *const u8, 8) };
+                binary_data.extend(call_bytes);
             }
             let file_name = if let Some(binary_file) = binary_file {
                 binary_file.clone()
@@ -292,7 +321,6 @@ fn patch_text(
             "Replacing {:?} at {} with {} at {}",
             instruction, reloc.r_offset, opcode, reloc.r_offset
         );
-        //LDDW_STRUCT = struct.Struct('<BBHiBBHi')
         let mut instr: Lddw = unsafe { std::ptr::read(instruction.as_ptr() as *const _) };
 
         instr.opcode = opcode as u8;
