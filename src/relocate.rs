@@ -1,6 +1,6 @@
 use std::{
     fs::{self, File},
-    io::Read,
+    io::{Read, Write},
 };
 
 use goblin::elf64::sym::{STB_GLOBAL, STT_FUNC, STT_OBJECT, STT_SECTION};
@@ -124,8 +124,11 @@ pub fn handle_relocate(args: &crate::args::Action) {
                 );
                 // Added flags for compatiblity with rbpf
                 let flags = 0;
-                symbol_structs.push((offset, flags, text_offset));
-
+                symbol_structs.push(Symbol {
+                    name_offset: offset as u16,
+                    flags: flags as u16,
+                    location_offset: text_offset as u16,
+                });
             }
 
             // Handle relocations
@@ -165,12 +168,68 @@ pub fn handle_relocate(args: &crate::args::Action) {
                     }
                 }
             }
-        print_bytes(&text);
+            round_section_length(&mut data);
+            round_section_length(&mut rodata);
+
+            // Now we write the new binary file
+            let header = Header {
+                magic: 123,
+                version: 0,
+                flags: 0,
+                data_len: data.len() as u32,
+                rodata_len: rodata.len() as u32,
+                text_len: text.len() as u32,
+                functions_len: symbol_structs.len() as u32,
+            };
+
+            let header_bytes = unsafe { std::slice::from_raw_parts(&header as *const _ as *const u8, 28) };
+            let mut binary_data = Vec::from(header_bytes);
+            binary_data.extend(data);
+            binary_data.extend(rodata);
+            binary_data.extend(text);
+
+            for symbol in symbol_structs {
+                let symbol_bytes =
+                    unsafe { std::slice::from_raw_parts(&symbol as *const _ as *const u8, 6) };
+                binary_data.extend(symbol_bytes);
+            }
+            let file_name = if let Some(binary_file) = binary_file {
+                binary_file.clone()
+            } else {
+                "a.bin".to_string()
+            };
+
+            let mut f = File::create(file_name).unwrap();
+            print_bytes(&binary_data);
+            f.write_all(&binary_data).unwrap()
         }
-
-
     } else {
         panic!("Invalid action args: {:?}", args);
+    }
+}
+
+#[repr(C, packed)]
+struct Symbol {
+    name_offset: u16,
+    flags: u16,
+    location_offset: u16,
+}
+
+#[repr(C, packed)]
+struct Header {
+    magic: u32,
+    version: u32,
+    flags: u32,
+    data_len: u32,
+    rodata_len: u32,
+    text_len: u32,
+    functions_len: u32,
+}
+
+fn round_section_length(section: &mut Vec<u8>) {
+    if section.len() % 8 != 0 {
+        let padding = 8 - section.len() % 8;
+        section.extend(vec![0; padding]);
     }
 }
 

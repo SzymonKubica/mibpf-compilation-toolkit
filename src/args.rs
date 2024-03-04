@@ -69,7 +69,7 @@ pub enum Action {
 
         /// Name of the signed SUIT manifest file present in the CoAP fileserver
         /// root directory.
-        # [arg(long, default_value_t = String::from("suit_manifest.signed"))]
+        # [arg(long, default_value_t = String::from("suit_manifest0.signed"))]
         suit_manifest: String,
 
         /// Network interface of the machine hosting the CoAP fileserver.
