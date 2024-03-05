@@ -107,7 +107,10 @@ pub fn handle_relocate(args: &crate::args::Action) {
             };
 
             let mut f = File::create(file_name).unwrap();
-            print_bytes(&binary_data);
+            if log_enabled!(Level::Debug) {
+                debug!("Generated binary:");
+                print_bytes(&binary_data);
+            }
             f.write_all(&binary_data).unwrap()
         }
     } else {
@@ -133,6 +136,7 @@ impl Into<Vec<u8>> for Binary {
         for call in self.relocated_calls {
             debug!("Adding a relocated call: {:?}", call);
             let call_bytes: &[u8] = (&call).into();
+            debug!("Call bytes: {:?}", call_bytes);
             binary_data.extend(call_bytes);
         }
         binary_data
@@ -166,7 +170,7 @@ struct Symbol {
 
 impl<'a> Into<&'a [u8]> for &'a Symbol {
     fn into(self) -> &'a [u8] {
-        unsafe { std::slice::from_raw_parts(&self as *const _ as *const u8, SYMBOL_SIZE) }
+        unsafe { std::slice::from_raw_parts(self as *const _ as *const u8, SYMBOL_SIZE) }
     }
 }
 
@@ -192,7 +196,7 @@ impl From<&[u8]> for Lddw {
 
 impl<'a> Into<&'a [u8]> for &'a Lddw {
     fn into(self) -> &'a [u8] {
-        unsafe { std::slice::from_raw_parts(&self as *const _ as *const u8, LDDW_INSTRUCTION_SIZE) }
+        unsafe { std::slice::from_raw_parts(self as *const _ as *const u8, LDDW_INSTRUCTION_SIZE) }
     }
 }
 
@@ -208,7 +212,7 @@ struct RelocatedCall {
 
 impl<'a> Into<&'a [u8]> for &'a RelocatedCall {
     fn into(self) -> &'a [u8] {
-        unsafe { std::slice::from_raw_parts(&self as *const _ as *const u8, RELOCATED_CALL_SIZE) }
+        unsafe { std::slice::from_raw_parts(self as *const _ as *const u8, RELOCATED_CALL_SIZE) }
     }
 }
 
@@ -277,7 +281,7 @@ fn find_relocated_calls(binary: &Elf<'_>, buffer: &[u8]) -> Vec<RelocatedCall> {
         if let Some(symbol) = binary.syms.get(reloc.r_sym) {
             if symbol.st_type() == STT_FUNC {
                 let name = binary.strtab.get_at(symbol.st_name).unwrap();
-                println!(
+                debug!(
                     "Relocation at instruction {} for function {} at {}",
                     reloc.r_offset, name, symbol.st_value
                 );
@@ -365,12 +369,6 @@ fn patch_text(
         return;
     }
 
-    // We only patch LDDW instructions
-    if text[reloc.r_offset as usize] != LDDW_OPCODE as u8 {
-        debug!("No LDDW instruction at {}", reloc.r_offset);
-        return;
-    }
-
     if symbol.st_type() == STT_SECTION {
         if let Some(off) = str_section_offsets.get(section_name) {
             offset = *off;
@@ -380,6 +378,12 @@ fn patch_text(
         }
     } else if symbol.st_type() == STT_OBJECT {
         offset = symbol.st_value as usize;
+    }
+
+    // We only patch LDDW instructions
+    if text[reloc.r_offset as usize] != LDDW_OPCODE as u8 {
+        debug!("No LDDW instruction at {}", reloc.r_offset);
+        return;
     }
 
     let opcode = if section_name.contains(".rodata.str") {
