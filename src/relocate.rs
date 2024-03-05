@@ -3,19 +3,26 @@ use std::{
     io::{Read, Write},
 };
 
-use goblin::elf64::sym::{STB_GLOBAL, STT_FUNC, STT_OBJECT, STT_SECTION};
+use goblin::{
+    elf::Elf,
+    elf64::sym::{STB_GLOBAL, STT_FUNC, STT_OBJECT, STT_SECTION},
+};
 use log::{debug, log_enabled, Level};
 
 use crate::args::Action;
 
-fn read_file_as_bytes(source_object_file: &String) -> Vec<u8> {
-    let mut f = File::open(&source_object_file).expect("File not found.");
-    let metadata = fs::metadata(&source_object_file).expect("Unable to read file metadata");
-    let mut buffer = vec![0; metadata.len() as usize];
-    f.read(&mut buffer).expect("buffer overflow");
-    buffer
-}
-
+/// Relocate subcommand is responsible for performing the post-processing of the
+/// compiled eBPF bytecode before it can be loaded onto the target device. It
+/// handles function relocations and read only data relocations.
+///
+/// The binary generated after the relocation script has the following format:
+/// - Header: Contains the information about the lengths of the remaining sections
+///   functions and read-only data. See [`Header`] for more details
+/// - Data section
+/// - Read-only data section
+/// - Text section: Contains the code of the main entrypoint and the other functions
+/// - Symbol structs: TODO: figure out why we need this
+/// - Relocated function calls: custom metadata specifying how function calls should be relocated
 pub fn handle_relocate(args: &crate::args::Action) {
     if let Action::Relocate {
         source_object_file,
@@ -25,46 +32,11 @@ pub fn handle_relocate(args: &crate::args::Action) {
         // Read in the object file into the buffer.
         let buffer = read_file_as_bytes(source_object_file);
         if let Ok(binary) = goblin::elf::Elf::parse(&buffer) {
-            // First pass involves extracting the text, data, rodata sections and
-            // the relocations.
 
-            let mut text: Vec<u8> = vec![];
-            let mut data: Vec<u8> = vec![];
-            let mut rodata: Vec<u8> = vec![];
-
-            for section in &binary.section_headers {
-                let section_name = binary.strtab.get_at(section.sh_name);
-                println!("Section name: {:?}", section_name);
-                println!("Section header: {:?}", section);
-
-                let maybe_relevant_section = match section_name {
-                    Some(".text") => Some(&mut text),
-                    Some(".data") => Some(&mut data),
-                    Some(".rodata") => Some(&mut rodata),
-                    _ => None,
-                };
-
-                if let Some(relevant_section) = maybe_relevant_section {
-                    relevant_section.extend(
-                        &buffer[section.sh_offset as usize
-                            ..(section.sh_offset + section.sh_size) as usize],
-                    );
-                }
-            }
-
-            debug!("Text section:");
-            if log_enabled!(Level::Debug) {
-                print_bytes(&text);
-            };
-
-            debug!("Data section:");
-            if log_enabled!(Level::Debug) {
-                print_bytes(&data);
-            };
-            debug!("Read-only Data section:");
-            if log_enabled!(Level::Debug) {
-                print_bytes(&rodata);
-            };
+            // First extract the bytes contained in all three main sections
+            let mut text: Vec<u8> = extract_section_bytes(".text", &binary, &buffer);
+            let mut data: Vec<u8> = extract_section_bytes(".data", &binary, &buffer);
+            let mut rodata: Vec<u8> = extract_section_bytes(".rodata", &binary, &buffer);
 
             // Second pass
             // String literals used in e.g. calls to printf are loaded into the
@@ -121,13 +93,6 @@ pub fn handle_relocate(args: &crate::args::Action) {
                     flags: flags as u16,
                     location_offset: text_offset as u16,
                 });
-            }
-
-            #[derive(Debug)]
-            #[repr(C, packed)]
-            struct RelocatedCall {
-                instruction_offset: u32,
-                function_text_offset: u32,
             }
 
             let mut relocated_calls = vec![];
@@ -236,6 +201,7 @@ struct Symbol {
     location_offset: u16,
 }
 
+/// A header that is appended at the start of the generated binary
 #[repr(C, packed)]
 struct Header {
     magic: u32,
@@ -264,6 +230,13 @@ struct Lddw {
     null2: u8,
     null3: u16,
     immediate_h: u32,
+}
+
+#[derive(Debug)]
+#[repr(C, packed)]
+struct RelocatedCall {
+    instruction_offset: u32,
+    function_text_offset: u32,
 }
 
 fn patch_text(
@@ -323,6 +296,39 @@ fn patch_text(
         text[reloc.r_offset as usize..reloc.r_offset as usize + 16]
             .copy_from_slice(new_instruction);
     }
+}
+
+fn read_file_as_bytes(source_object_file: &String) -> Vec<u8> {
+    let mut f = File::open(&source_object_file).expect("File not found.");
+    let metadata = fs::metadata(&source_object_file).expect("Unable to read file metadata");
+    let mut buffer = vec![0; metadata.len() as usize];
+    f.read(&mut buffer).expect("buffer overflow");
+    buffer
+}
+
+/// Copies the bytes contained in a specific section in the ELF file.
+fn extract_section_bytes(section_name: &str, binary: &Elf<'_>, binary_buffer: &[u8]) -> Vec<u8> {
+    debug!("Extracting section: {} ", section_name);
+    let mut section_bytes: Vec<u8> = vec![];
+    // Iterate over section headers to find the one with a matching name
+    for section in &binary.section_headers {
+        let name = binary.strtab.get_at(section.sh_name);
+
+        if let Some(other_section_name) = name {
+            if other_section_name == section_name {
+                section_bytes.extend(
+                    &binary_buffer[section.sh_offset as usize
+                        ..(section.sh_offset + section.sh_size) as usize],
+                );
+            }
+        }
+    }
+
+    if log_enabled!(Level::Debug) {
+        debug!("Extracted bytes:");
+        print_bytes(&section_bytes);
+    };
+    section_bytes
 }
 
 fn print_bytes(bytes: &[u8]) {
