@@ -12,6 +12,17 @@ use log::{debug, log_enabled, Level};
 
 use crate::args::Action;
 
+const INSTRUCTION_SIZE: usize = 8;
+const LDDW_INSTRUCTION_SIZE: usize = 16;
+
+const HEADER_SIZE: usize = 28;
+const SYMBOL_SIZE: usize = 6;
+const RELOCATED_CALL_SIZE: usize = 8;
+
+const LDDWD_OPCODE: u32 = 0xB8;
+const LDDWR_OPCODE: u32 = 0xD8;
+const LDDW_OPCODE: u32 = 0x18;
+
 /// Relocate subcommand is responsible for performing the post-processing of the
 /// compiled eBPF bytecode before it can be loaded onto the target device. It
 /// handles function relocations and read only data relocations.
@@ -103,6 +114,160 @@ pub fn handle_relocate(args: &crate::args::Action) {
     }
 }
 
+/// A header that is appended at the start of the generated binary. Contains
+/// information about the length of the correspoinding sections in the binary
+/// so that the VM executing the code can access the .rodata and .data sections
+/// properly.
+#[repr(C, packed)]
+struct Header {
+    magic: u32,
+    version: u32,
+    flags: u32,
+    data_len: u32,
+    rodata_len: u32,
+    text_len: u32,
+    functions_len: u32,
+}
+
+/// A symbol struct represents a function.
+#[repr(C, packed)]
+struct Symbol {
+    // Offset to the name of the function in the .rodata section
+    name_offset: u16,
+    flags: u16,
+    // Offset of the function in the .text section
+    location_offset: u16,
+}
+
+/// Load-double-word instruction, needed for bytecode patching for loads from
+/// .data and .rodata sections.
+#[repr(C, packed)]
+struct Lddw {
+    opcode: u8,
+    registers: u8,
+    offset: u16,
+    immediate_l: u32,
+    null1: u8,
+    null2: u8,
+    null3: u16,
+    immediate_h: u32,
+}
+
+impl From<&[u8]> for Lddw {
+    fn from(bytes: &[u8]) -> Self {
+        unsafe { std::ptr::read(bytes.as_ptr() as *const _) }
+    }
+}
+
+impl Lddw {
+    fn to_bytes(&self) -> Vec<u8> {
+        let bytes = unsafe { std::slice::from_raw_parts(&self as *const _ as *const u8, 16) };
+        Vec::from(bytes)
+    }
+}
+
+/// A custom struct indicating that at a given instruction offset a call
+/// `call -1` should be replaced with a call the function at a given offset
+/// in the .text section.
+#[derive(Debug)]
+#[repr(C, packed)]
+struct RelocatedCall {
+    instruction_offset: u32,
+    function_text_offset: u32,
+}
+
+/// String literals used in e.g. calls to printf are loaded into the
+/// .rodata.str.1 section, we need to move them over to the rodata section.
+/// In order to perform relocations properly later on, we need to maintain
+/// the map from the name of the additional rodata section to the offset
+/// to it relative to the original rodata section. This map is returned from this
+/// functio.
+fn append_string_literals<'a>(
+    rodata: &mut Vec<u8>,
+    binary: &Elf<'a>,
+    buffer: &[u8],
+) -> HashMap<&'a str, usize> {
+    let mut str_section_offsets = std::collections::HashMap::new();
+
+    for section in &binary.section_headers {
+        if let Some(section_name) = binary.strtab.get_at(section.sh_name) {
+            // The string literals are stored in the .rodata.str.1 section
+            if section_name.contains(".rodata.str") {
+                str_section_offsets.insert(section_name, rodata.len());
+                rodata.extend(
+                    &buffer[section.sh_offset as usize
+                        ..(section.sh_offset + section.sh_size) as usize],
+                );
+            }
+        }
+    }
+
+    debug!(
+        "Additional read-only string sections: {:?}",
+        str_section_offsets
+    );
+
+    str_section_offsets
+}
+
+fn extract_function_symbols(rodata: &mut Vec<u8>, binary: &Elf<'_>) -> Vec<Symbol> {
+    let mut symbol_structs: Vec<Symbol> = vec![];
+    for symbol in binary.syms.iter() {
+        if symbol.st_type() == STT_FUNC && symbol.st_bind() == STB_GLOBAL {
+            let symbol_name = binary.strtab.get_at(symbol.st_name).unwrap();
+
+            debug!("Found global function: {}", symbol_name);
+            let offset_within_text = symbol.st_value as usize;
+            let offset = rodata.len();
+            let name_cstr = std::ffi::CString::new(symbol_name).unwrap();
+            rodata.extend(name_cstr.to_bytes().iter());
+            // Added flags for compatiblity with rbpf
+            let flags = 0;
+            symbol_structs.push(Symbol {
+                name_offset: offset as u16,
+                flags: flags as u16,
+                location_offset: offset_within_text as u16,
+            });
+        }
+    }
+    symbol_structs
+}
+
+fn find_relocated_calls(binary: &Elf<'_>, buffer: &[u8]) -> Vec<RelocatedCall> {
+    let mut relocated_calls: Vec<RelocatedCall> = vec![];
+    for section in &binary.section_headers {
+        if section.sh_type == goblin::elf::section_header::SHT_REL {
+            let offset = section.sh_offset as usize;
+            let size = section.sh_size as usize;
+            let relocations = goblin::elf::reloc::RelocSection::parse(
+                &buffer,
+                offset,
+                size,
+                false,
+                goblin::container::Ctx::default(),
+            )
+            .unwrap();
+            for reloc in relocations.iter() {
+                debug!("Relocation found : {:?}", reloc);
+                if let Some(symbol) = binary.syms.get(reloc.r_sym) {
+                    if symbol.st_type() == STT_FUNC {
+                        let name = binary.strtab.get_at(symbol.st_name).unwrap();
+                        println!(
+                            "Relocation at instruction {} for function {} at {}",
+                            reloc.r_offset, name, symbol.st_value
+                        );
+                        relocated_calls.push(RelocatedCall {
+                            instruction_offset: reloc.r_offset as u32,
+                            function_text_offset: symbol.st_value as u32,
+                        });
+                    }
+                }
+            }
+        }
+    }
+    relocated_calls
+}
+
 fn resolve_rodata_relocations(
     text: &mut Vec<u8>,
     binary: &Elf<'_>,
@@ -150,143 +315,6 @@ fn resolve_rodata_relocations(
     }
 }
 
-fn find_relocated_calls(binary: &Elf<'_>, buffer: &[u8]) -> Vec<RelocatedCall> {
-    let mut relocated_calls: Vec<RelocatedCall> = vec![];
-    for section in &binary.section_headers {
-        if section.sh_type == goblin::elf::section_header::SHT_REL {
-            let offset = section.sh_offset as usize;
-            let size = section.sh_size as usize;
-            let relocations = goblin::elf::reloc::RelocSection::parse(
-                &buffer,
-                offset,
-                size,
-                false,
-                goblin::container::Ctx::default(),
-            )
-            .unwrap();
-            for reloc in relocations.iter() {
-                debug!("Relocation found : {:?}", reloc);
-                if let Some(symbol) = binary.syms.get(reloc.r_sym) {
-                    if symbol.st_type() == STT_FUNC {
-                        let name = binary.strtab.get_at(symbol.st_name).unwrap();
-                        println!(
-                            "Relocation at instruction {} for function {} at {}",
-                            reloc.r_offset, name, symbol.st_value
-                        );
-                        relocated_calls.push(RelocatedCall {
-                            instruction_offset: reloc.r_offset as u32,
-                            function_text_offset: symbol.st_value as u32,
-                        });
-                    }
-                }
-            }
-        }
-    }
-    relocated_calls
-}
-
-fn extract_function_symbols(rodata: &mut Vec<u8>, binary: &Elf<'_>) -> Vec<Symbol> {
-    let mut symbol_structs: Vec<Symbol> = vec![];
-    for symbol in binary.syms.iter() {
-        if symbol.st_type() == STT_FUNC && symbol.st_bind() == STB_GLOBAL {
-            let symbol_name = binary.strtab.get_at(symbol.st_name).unwrap();
-
-            debug!("Found global function: {}", symbol_name);
-            let offset_within_text = symbol.st_value as usize;
-            let offset = rodata.len();
-            let name_cstr = std::ffi::CString::new(symbol_name).unwrap();
-            rodata.extend(name_cstr.to_bytes().iter());
-            // Added flags for compatiblity with rbpf
-            let flags = 0;
-            symbol_structs.push(Symbol {
-                name_offset: offset as u16,
-                flags: flags as u16,
-                location_offset: offset_within_text as u16,
-            });
-        }
-    }
-    symbol_structs
-}
-
-/// String literals used in e.g. calls to printf are loaded into the
-/// .rodata.str.1 section, we need to move them over to the rodata section.
-/// In order to perform relocations properly later on, we need to maintain
-/// the map from the name of the additional rodata section to the offset
-/// to it relative to the original rodata section. This map is returned from this
-/// functio.
-fn append_string_literals<'a>(
-    rodata: &mut Vec<u8>,
-    binary: &Elf<'a>,
-    buffer: &[u8],
-) -> HashMap<&'a str, usize> {
-    let mut str_section_offsets = std::collections::HashMap::new();
-
-    for section in &binary.section_headers {
-        if let Some(section_name) = binary.strtab.get_at(section.sh_name) {
-            // The string literals are stored in the .rodata.str.1 section
-            if section_name.contains(".rodata.str") {
-                str_section_offsets.insert(section_name, rodata.len());
-                rodata.extend(
-                    &buffer[section.sh_offset as usize
-                        ..(section.sh_offset + section.sh_size) as usize],
-                );
-            }
-        }
-    }
-
-    debug!(
-        "Additional read-only string sections: {:?}",
-        str_section_offsets
-    );
-
-    str_section_offsets
-}
-
-#[repr(C, packed)]
-struct Symbol {
-    name_offset: u16,
-    flags: u16,
-    location_offset: u16,
-}
-
-/// A header that is appended at the start of the generated binary
-#[repr(C, packed)]
-struct Header {
-    magic: u32,
-    version: u32,
-    flags: u32,
-    data_len: u32,
-    rodata_len: u32,
-    text_len: u32,
-    functions_len: u32,
-}
-
-fn round_section_length(section: &mut Vec<u8>) {
-    if section.len() % 8 != 0 {
-        let padding = 8 - section.len() % 8;
-        section.extend(vec![0; padding]);
-    }
-}
-
-#[repr(C, packed)]
-struct Lddw {
-    opcode: u8,
-    registers: u8,
-    offset: u16,
-    immediate_l: u32,
-    null1: u8,
-    null2: u8,
-    null3: u16,
-    immediate_h: u32,
-}
-
-#[derive(Debug)]
-#[repr(C, packed)]
-struct RelocatedCall {
-    instruction_offset: u32,
-    function_text_offset: u32,
-}
-
 fn patch_text(
     text: &mut [u8],
     binary: &Elf<'_>,
@@ -298,6 +326,21 @@ fn patch_text(
     let section = binary.section_headers.get(symbol.st_shndx).unwrap();
     let section_name = binary.strtab.get_at(section.sh_name).unwrap();
     let mut offset = 0;
+
+    // We don't do eny relocations in case of functions as they are handled
+    // in a custom way by the VM (we append their relocation structs at the end of the binary
+    // file)
+    if symbol.st_type() == STT_FUNC {
+        debug!("NO patching is performed for function calls.");
+        return;
+    }
+
+    // We only patch LDDW instructions
+    if text[reloc.r_offset as usize] != LDDW_OPCODE as u8 {
+        debug!("No LDDW instruction at {}", reloc.r_offset);
+        return;
+    }
+
     if symbol.st_type() == STT_SECTION {
         if let Some(off) = str_section_offsets.get(section_name) {
             offset = *off;
@@ -307,16 +350,7 @@ fn patch_text(
         }
     } else if symbol.st_type() == STT_OBJECT {
         offset = symbol.st_value as usize;
-    } else if symbol.st_type() == STT_FUNC {
-        // We don't do eny relocations in case of functions as they are handled
-        // in a custom way by the VM (we append their relocation structs at the end of the binary
-        // file)
-        return;
     }
-
-    const LDDWD_OPCODE: u32 = 0xB8;
-    const LDDWR_OPCODE: u32 = 0xD8;
-    const LDDW_OPCODE: u32 = 0x18;
 
     let opcode = if section_name.contains(".rodata.str") {
         LDDWR_OPCODE
@@ -324,30 +358,20 @@ fn patch_text(
         LDDWD_OPCODE
     };
 
-    if text[reloc.r_offset as usize] != LDDW_OPCODE as u8 {
-        debug!("No LDDW instruction at {}", reloc.r_offset);
-        return;
-    } else {
-        let instruction = Vec::from(&text[reloc.r_offset as usize..reloc.r_offset as usize + 16]);
-        debug!(
-            "Replacing {:?} at {} with {} at {}",
-            instruction, reloc.r_offset, opcode, reloc.r_offset
-        );
+    // We instantiate the instruction struct to modify it
+    let instr_bytes = &text[reloc.r_offset as usize..reloc.r_offset as usize + 16];
+    debug!(
+        "Replacing {:?} at {} with {} at {}",
+        instr_bytes, reloc.r_offset, opcode, reloc.r_offset
+    );
 
-        // We instantiate the instruction struct to modify it
-        let mut instr: Lddw = unsafe { std::ptr::read(instruction.as_ptr() as *const _) };
+    let mut instr: Lddw = Lddw::from(instr_bytes);
+    instr.opcode = opcode as u8;
+    instr.immediate_l += offset as u32;
 
-        instr.opcode = opcode as u8;
-        instr.immediate_l += offset as u32;
-
-        // Now we go back to the raw bytes and write them in.
-        let new_instruction =
-            unsafe { std::slice::from_raw_parts(&instr as *const _ as *const u8, 16) };
-
-        text[reloc.r_offset as usize..reloc.r_offset as usize + 16]
-            .copy_from_slice(new_instruction);
-    }
+    text[reloc.r_offset as usize..reloc.r_offset as usize + 16].copy_from_slice(&instr.to_bytes());
 }
+
 
 fn read_file_as_bytes(source_object_file: &String) -> Vec<u8> {
     let mut f = File::open(&source_object_file).expect("File not found.");
@@ -385,8 +409,15 @@ fn extract_section_bytes(section_name: &str, binary: &Elf<'_>, binary_buffer: &[
 fn print_bytes(bytes: &[u8]) {
     for (i, byte) in bytes.iter().enumerate() {
         print!("{:02x} ", byte);
-        if (i + 1) % 8 == 0 {
+        if (i + 1) % INSTRUCTION_SIZE == 0 {
             println!();
         }
+    }
+}
+
+fn round_section_length(section: &mut Vec<u8>) {
+    if section.len() % INSTRUCTION_SIZE != 0 {
+        let padding = INSTRUCTION_SIZE - section.len() % INSTRUCTION_SIZE;
+        section.extend(vec![0; padding]);
     }
 }
