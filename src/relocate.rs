@@ -23,10 +23,6 @@ const LDDWD_OPCODE: u32 = 0xB8;
 const LDDWR_OPCODE: u32 = 0xD8;
 const LDDW_OPCODE: u32 = 0x18;
 
-/// Relocate subcommand is responsible for performing the post-processing of the
-/// compiled eBPF bytecode before it can be loaded onto the target device. It
-/// handles function relocations and read only data relocations.
-///
 /// The binary generated after the relocation script has the following format:
 /// - Header: Contains the information about the lengths of the remaining sections
 ///   functions and read-only data. See [`Header`] for more details
@@ -35,6 +31,19 @@ const LDDW_OPCODE: u32 = 0x18;
 /// - Text section: Contains the code of the main entrypoint and the other functions
 /// - Symbol structs: TODO: figure out why we need this
 /// - Relocated function calls: custom metadata specifying how function calls should be relocated
+struct Binary {
+    header: Header,
+    data: Vec<u8>,
+    rodata: Vec<u8>,
+    text: Vec<u8>,
+    functions: Vec<Symbol>,
+    relocated_calls: Vec<RelocatedCall>,
+}
+
+/// Relocate subcommand is responsible for performing the post-processing of the
+/// compiled eBPF bytecode before it can be loaded onto the target device. It
+/// handles function relocations and read only data relocations.
+///
 pub fn handle_relocate(args: &crate::args::Action) {
     if let Action::Relocate {
         source_object_file,
@@ -80,25 +89,17 @@ pub fn handle_relocate(args: &crate::args::Action) {
                 functions_len: symbol_structs.len() as u32,
             };
 
-            let header_bytes =
-                unsafe { std::slice::from_raw_parts(&header as *const _ as *const u8, 28) };
-            let mut binary_data = Vec::from(header_bytes);
-            binary_data.extend(data);
-            binary_data.extend(rodata);
-            binary_data.extend(text);
+            let output_binary: Binary = Binary {
+                header,
+                data,
+                rodata,
+                text,
+                functions: symbol_structs,
+                relocated_calls,
+            };
 
-            for symbol in symbol_structs {
-                let symbol_bytes =
-                    unsafe { std::slice::from_raw_parts(&symbol as *const _ as *const u8, 6) };
-                binary_data.extend(symbol_bytes);
-            }
+            let binary_data: Vec<u8> = output_binary.into();
 
-            for call in relocated_calls {
-                println!("Adding a relocated call: {:?}", call);
-                let call_bytes =
-                    unsafe { std::slice::from_raw_parts(&call as *const _ as *const u8, 8) };
-                binary_data.extend(call_bytes);
-            }
             let file_name = if let Some(binary_file) = binary_file {
                 binary_file.clone()
             } else {
@@ -111,6 +112,30 @@ pub fn handle_relocate(args: &crate::args::Action) {
         }
     } else {
         panic!("Invalid action args: {:?}", args);
+    }
+}
+
+impl Into<Vec<u8>> for Binary {
+    fn into(self) -> Vec<u8> {
+        let header_bytes = unsafe {
+            std::slice::from_raw_parts(&self.header as *const _ as *const u8, HEADER_SIZE)
+        };
+        let mut binary_data = Vec::from(header_bytes);
+        binary_data.extend(self.data);
+        binary_data.extend(self.rodata);
+        binary_data.extend(self.text);
+
+        for symbol in self.functions {
+            let symbol: &[u8] = (&symbol).into();
+            binary_data.extend(symbol);
+        }
+
+        for call in self.relocated_calls {
+            debug!("Adding a relocated call: {:?}", call);
+            let call_bytes: &[u8] = (&call).into();
+            binary_data.extend(call_bytes);
+        }
+        binary_data
     }
 }
 
@@ -139,6 +164,12 @@ struct Symbol {
     location_offset: u16,
 }
 
+impl<'a> Into<&'a [u8]> for &'a Symbol {
+    fn into(self) -> &'a [u8] {
+        unsafe { std::slice::from_raw_parts(&self as *const _ as *const u8, SYMBOL_SIZE) }
+    }
+}
+
 /// Load-double-word instruction, needed for bytecode patching for loads from
 /// .data and .rodata sections.
 #[repr(C, packed)]
@@ -159,10 +190,9 @@ impl From<&[u8]> for Lddw {
     }
 }
 
-impl Lddw {
-    fn to_bytes(&self) -> Vec<u8> {
-        let bytes = unsafe { std::slice::from_raw_parts(&self as *const _ as *const u8, 16) };
-        Vec::from(bytes)
+impl<'a> Into<&'a [u8]> for &'a Lddw {
+    fn into(self) -> &'a [u8] {
+        unsafe { std::slice::from_raw_parts(&self as *const _ as *const u8, LDDW_INSTRUCTION_SIZE) }
     }
 }
 
@@ -174,6 +204,12 @@ impl Lddw {
 struct RelocatedCall {
     instruction_offset: u32,
     function_text_offset: u32,
+}
+
+impl<'a> Into<&'a [u8]> for &'a RelocatedCall {
+    fn into(self) -> &'a [u8] {
+        unsafe { std::slice::from_raw_parts(&self as *const _ as *const u8, RELOCATED_CALL_SIZE) }
+    }
 }
 
 /// String literals used in e.g. calls to printf are loaded into the
@@ -235,33 +271,20 @@ fn extract_function_symbols(rodata: &mut Vec<u8>, binary: &Elf<'_>) -> Vec<Symbo
 
 fn find_relocated_calls(binary: &Elf<'_>, buffer: &[u8]) -> Vec<RelocatedCall> {
     let mut relocated_calls: Vec<RelocatedCall> = vec![];
-    for section in &binary.section_headers {
-        if section.sh_type == goblin::elf::section_header::SHT_REL {
-            let offset = section.sh_offset as usize;
-            let size = section.sh_size as usize;
-            let relocations = goblin::elf::reloc::RelocSection::parse(
-                &buffer,
-                offset,
-                size,
-                false,
-                goblin::container::Ctx::default(),
-            )
-            .unwrap();
-            for reloc in relocations.iter() {
-                debug!("Relocation found : {:?}", reloc);
-                if let Some(symbol) = binary.syms.get(reloc.r_sym) {
-                    if symbol.st_type() == STT_FUNC {
-                        let name = binary.strtab.get_at(symbol.st_name).unwrap();
-                        println!(
-                            "Relocation at instruction {} for function {} at {}",
-                            reloc.r_offset, name, symbol.st_value
-                        );
-                        relocated_calls.push(RelocatedCall {
-                            instruction_offset: reloc.r_offset as u32,
-                            function_text_offset: symbol.st_value as u32,
-                        });
-                    }
-                }
+    let relocations = find_relocations(binary, buffer);
+    for reloc in relocations {
+        debug!("Relocation found : {:?}", reloc);
+        if let Some(symbol) = binary.syms.get(reloc.r_sym) {
+            if symbol.st_type() == STT_FUNC {
+                let name = binary.strtab.get_at(symbol.st_name).unwrap();
+                println!(
+                    "Relocation at instruction {} for function {} at {}",
+                    reloc.r_offset, name, symbol.st_value
+                );
+                relocated_calls.push(RelocatedCall {
+                    instruction_offset: reloc.r_offset as u32,
+                    function_text_offset: symbol.st_value as u32,
+                });
             }
         }
     }
@@ -274,12 +297,40 @@ fn resolve_rodata_relocations(
     buffer: &[u8],
     str_section_offsets: &HashMap<&str, usize>,
 ) {
-    // Handle relocations
+    let relocations = find_relocations(binary, buffer);
+    for relocation in relocations {
+        if let Some(symbol) = binary.syms.get(relocation.r_sym) {
+            let section = binary.section_headers.get(symbol.st_shndx).unwrap();
+            let section_name = binary.strtab.get_at(section.sh_name).unwrap();
+            match symbol.st_type() {
+                STT_SECTION => {
+                    debug!(
+                        "Relocation at instruction {} for section {} at {}",
+                        relocation.r_offset, section_name, symbol.st_value
+                    )
+                }
+                STT_FUNC => continue, // We don't patch for functions
+                _ => {
+                    let symbol_name = binary.strtab.get_at(symbol.st_name).unwrap();
+                    debug!(
+                        "Relocation at instruction {} for symbol {} in {} at {}",
+                        relocation.r_offset, symbol_name, section_name, symbol.st_value
+                    )
+                }
+            }
+        }
+
+        patch_text(text, binary, relocation, &str_section_offsets);
+    }
+}
+
+fn find_relocations(binary: &Elf<'_>, buffer: &[u8]) -> Vec<Reloc> {
+    let mut relocations = vec![];
     for section in &binary.section_headers {
         if section.sh_type == goblin::elf::section_header::SHT_REL {
             let offset = section.sh_offset as usize;
             let size = section.sh_size as usize;
-            let relocations = goblin::elf::reloc::RelocSection::parse(
+            let relocs = goblin::elf::reloc::RelocSection::parse(
                 &buffer,
                 offset,
                 size,
@@ -287,32 +338,11 @@ fn resolve_rodata_relocations(
                 goblin::container::Ctx::default(),
             )
             .unwrap();
-            for relocation in relocations.iter() {
-                if let Some(symbol) = binary.syms.get(relocation.r_sym) {
-                    let section = binary.section_headers.get(symbol.st_shndx).unwrap();
-                    let section_name = binary.strtab.get_at(section.sh_name).unwrap();
-                    match symbol.st_type() {
-                        STT_SECTION => {
-                            debug!(
-                                "Relocation at instruction {} for section {} at {}",
-                                relocation.r_offset, section_name, symbol.st_value
-                            )
-                        }
-                        STT_FUNC => continue, // We don't patch for functions
-                        _ => {
-                            let symbol_name = binary.strtab.get_at(symbol.st_name).unwrap();
-                            debug!(
-                                "Relocation at instruction {} for symbol {} in {} at {}",
-                                relocation.r_offset, symbol_name, section_name, symbol.st_value
-                            )
-                        }
-                    }
-                }
-
-                patch_text(text, binary, relocation, &str_section_offsets);
-            }
+            relocs.iter().for_each(|reloc| relocations.push(reloc));
         }
     }
+
+    relocations
 }
 
 fn patch_text(
@@ -331,7 +361,7 @@ fn patch_text(
     // in a custom way by the VM (we append their relocation structs at the end of the binary
     // file)
     if symbol.st_type() == STT_FUNC {
-        debug!("NO patching is performed for function calls.");
+        debug!("No patching is performed for function calls.");
         return;
     }
 
@@ -369,9 +399,8 @@ fn patch_text(
     instr.opcode = opcode as u8;
     instr.immediate_l += offset as u32;
 
-    text[reloc.r_offset as usize..reloc.r_offset as usize + 16].copy_from_slice(&instr.to_bytes());
+    text[reloc.r_offset as usize..reloc.r_offset as usize + 16].copy_from_slice((&instr).into());
 }
-
 
 fn read_file_as_bytes(source_object_file: &String) -> Vec<u8> {
     let mut f = File::open(&source_object_file).expect("File not found.");
