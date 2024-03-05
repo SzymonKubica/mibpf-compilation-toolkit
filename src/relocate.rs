@@ -4,8 +4,17 @@ use std::{
 };
 
 use goblin::elf64::sym::{STB_GLOBAL, STT_FUNC, STT_OBJECT, STT_SECTION};
+use log::{debug, log_enabled, Level};
 
 use crate::args::Action;
+
+fn read_file_as_bytes(source_object_file: &String) -> Vec<u8> {
+    let mut f = File::open(&source_object_file).expect("File not found.");
+    let metadata = fs::metadata(&source_object_file).expect("Unable to read file metadata");
+    let mut buffer = vec![0; metadata.len() as usize];
+    f.read(&mut buffer).expect("buffer overflow");
+    buffer
+}
 
 pub fn handle_relocate(args: &crate::args::Action) {
     if let Action::Relocate {
@@ -13,16 +22,8 @@ pub fn handle_relocate(args: &crate::args::Action) {
         binary_file,
     } = args
     {
-        // Once the bytecode is patched and the offsets are adjusted correctly
-        // we need to strip off the main program section from the object file.
-        // This is because only this part is being used by the rbpf VM.
-
         // Read in the object file into the buffer.
-        let mut f = File::open(&source_object_file).expect("no file found");
-        let metadata = fs::metadata(&source_object_file).expect("unable to read metadata");
-        let mut buffer = vec![0; metadata.len() as usize];
-        f.read(&mut buffer).expect("buffer overflow");
-
+        let buffer = read_file_as_bytes(source_object_file);
         if let Ok(binary) = goblin::elf::Elf::parse(&buffer) {
             // First pass involves extracting the text, data, rodata sections and
             // the relocations.
@@ -49,30 +50,21 @@ pub fn handle_relocate(args: &crate::args::Action) {
                             ..(section.sh_offset + section.sh_size) as usize],
                     );
                 }
-
-                if section.sh_type == goblin::elf::section_header::SHT_REL {
-                    let offset = section.sh_offset as usize;
-                    let size = section.sh_size as usize;
-                    let relocations = goblin::elf::reloc::RelocSection::parse(
-                        &buffer,
-                        offset,
-                        size,
-                        false,
-                        goblin::container::Ctx::default(),
-                    )
-                    .unwrap();
-                    for reloc in relocations.iter() {
-                        println!("Reloc: {:?}", reloc);
-                    }
-                }
             }
 
-            println!("Text section:");
-            print_bytes(&text);
-            println!("Data section:");
-            print_bytes(&data);
-            println!("Read-only Data section:");
-            print_bytes(&rodata);
+            debug!("Text section:");
+            if log_enabled!(Level::Debug) {
+                print_bytes(&text);
+            };
+
+            debug!("Data section:");
+            if log_enabled!(Level::Debug) {
+                print_bytes(&data);
+            };
+            debug!("Read-only Data section:");
+            if log_enabled!(Level::Debug) {
+                print_bytes(&rodata);
+            };
 
             // Second pass
             // String literals used in e.g. calls to printf are loaded into the
@@ -129,7 +121,6 @@ pub fn handle_relocate(args: &crate::args::Action) {
                     flags: flags as u16,
                     location_offset: text_offset as u16,
                 });
-
             }
 
             #[derive(Debug)]

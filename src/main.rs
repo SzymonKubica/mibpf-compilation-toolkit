@@ -17,9 +17,11 @@ mod sign;
 extern crate clap;
 extern crate coap;
 extern crate rbpf;
+extern crate env_logger;
 
 #[tokio::main]
 async fn main() {
+    env_logger::init();
     let args = args::Args::parse();
 
     match &args.command {
