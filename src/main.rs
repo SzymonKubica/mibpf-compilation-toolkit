@@ -10,27 +10,33 @@ mod args;
 mod compile;
 mod deploy;
 mod execute;
+mod internal_representation;
 mod pull;
 mod relocate;
 mod sign;
 
 extern crate clap;
 extern crate coap;
-extern crate rbpf;
 extern crate env_logger;
+extern crate rbpf;
 
 #[tokio::main]
 async fn main() {
     env_logger::init();
     let args = args::Args::parse();
 
-    match &args.command {
+    let result = match &args.command {
         args::Action::Compile { .. } => handle_compile(&args.command),
         args::Action::Sign { .. } => handle_sign(&args.command),
-        args::Action::Pull { .. } => handle_pull(&args.command).await,
-        args::Action::Execute { .. } => handle_execute(&args.command).await,
-        args::Action::Deploy { .. } => handle_deploy(&args.command).await,
-        args::Action::EmulateExecution { .. } => handle_emulate(&args.command),
-        args::Action::Relocate { .. } => handle_relocate(&args.command),
+        args::Action::Pull { .. } => Ok(handle_pull(&args.command).await),
+        args::Action::Execute { .. } => Ok(handle_execute(&args.command).await),
+        args::Action::Deploy { .. } => Ok(handle_deploy(&args.command).await),
+        args::Action::EmulateExecution { .. } => Ok(handle_emulate(&args.command)),
+        args::Action::Relocate { .. } => Ok(handle_relocate(&args.command)),
+    };
+
+    if let Err(e) = result {
+        eprintln!("Error: {}", e);
+        std::process::exit(1);
     }
 }
