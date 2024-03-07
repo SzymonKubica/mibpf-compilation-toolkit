@@ -2,33 +2,38 @@ use std::process::Command;
 
 use crate::args::Action;
 
-pub fn handle_sign(args: &crate::args::Action) {
-    if let Action::Sign {
+pub fn handle_sign(args: &crate::args::Action) -> Result<(), String> {
+    let Action::Sign {
         host_network_interface,
         board_name,
         coaproot_dir,
         binary_name,
         suit_storage_slot,
     } = args
-    {
-        place_binary_in_coap_root(coaproot_dir, binary_name);
+    else {
+        return Err(format!("Invalid action args: {:?}", args));
+    };
 
-        let file_name = binary_name.split("/").last().unwrap();
+    place_binary_in_coap_root(coaproot_dir, binary_name);
 
-        let _ = Command::new("bash")
-            .arg("./scripts/sign-binary.sh")
-            .arg(host_network_interface)
-            .arg(board_name)
-            .arg(coaproot_dir)
-            // The file should have been copied to coaproot by now.
-            .arg(format!("{}/{}", coaproot_dir, file_name))
-            .arg(suit_storage_slot.to_string())
-            .spawn()
-            .expect("Failed to compile the eBPF bytecode.")
-            .wait();
-    } else {
-        panic!("Invalid action args: {:?}", args);
-    }
+    let file_name = binary_name.split("/").last().unwrap();
+
+    let Ok(_) = Command::new("bash")
+        .arg("./scripts/sign-binary.sh")
+        .arg(host_network_interface)
+        .arg(board_name)
+        .arg(coaproot_dir)
+        // The file should have been copied to coaproot by now.
+        .arg(format!("{}/{}", coaproot_dir, file_name))
+        .arg(suit_storage_slot.to_string())
+        .spawn()
+        .expect("Failed to sign the binary")
+        .wait()
+    else {
+        return Err("Failed to sign the binary".to_string());
+    };
+
+    Ok(())
 }
 
 fn place_binary_in_coap_root(coaproot_dir: &str, binary_name: &str) {
