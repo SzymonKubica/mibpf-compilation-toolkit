@@ -12,7 +12,7 @@ pub async fn handle_pull(args: &crate::args::Action) -> Result<(), String> {
         host_network_interface,
     } = args
     else {
-        return Err(format!("Invalid action args: {:?}", args));
+        return Err(format!("Invalid subcommand args: {:?}", args));
     };
 
     let url = format!(

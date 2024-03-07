@@ -13,7 +13,7 @@ pub async fn handle_deploy(args: &crate::args::Action) -> Result<(), String> {
         host_ipv6_addr,
     } = args
     else {
-        return Err(format!("Invalid action args: {:?}", args));
+        return Err(format!("Invalid subcommand args: {:?}", args));
     };
     handle_compile(&Action::Compile {
         bpf_source_file: bpf_source_file.to_string(),

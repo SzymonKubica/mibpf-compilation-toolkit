@@ -11,7 +11,7 @@ pub fn handle_sign(args: &crate::args::Action) -> Result<(), String> {
         suit_storage_slot,
     } = args
     else {
-        return Err(format!("Invalid action args: {:?}", args));
+        return Err(format!("Invalid subcommand args: {:?}", args));
     };
 
     place_binary_in_coap_root(coaproot_dir, binary_name);

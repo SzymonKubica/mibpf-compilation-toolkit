@@ -44,78 +44,81 @@ struct Binary {
 /// compiled eBPF bytecode before it can be loaded onto the target device. It
 /// handles function relocations and read only data relocations.
 ///
-pub fn handle_relocate(args: &crate::args::Action) {
-    if let Action::Relocate {
+pub fn handle_relocate(args: &crate::args::Action) -> Result<(), String> {
+    let Action::Relocate {
         source_object_file,
         binary_file,
     } = args
-    {
-        // Read in the object file into the buffer.
-        let buffer = read_file_as_bytes(source_object_file);
-        if let Ok(binary) = goblin::elf::Elf::parse(&buffer) {
-            // First extract the bytes contained in all three main sections
-            let mut text: Vec<u8> = extract_section_bytes(".text", &binary, &buffer);
-            let mut data: Vec<u8> = extract_section_bytes(".data", &binary, &buffer);
-            let mut rodata: Vec<u8> = extract_section_bytes(".rodata", &binary, &buffer);
+    else {
+        return Err(format!("Invalid subcommand args: {:?}", args));
+    };
+    // Read in the object file into the buffer.
+    let buffer = read_file_as_bytes(source_object_file);
+    let Ok(binary) = goblin::elf::Elf::parse(&buffer) else {
+        return Err("Failed to parse the Elf binary".to_string());
+    };
 
-            // Now handle all string literals that aren't placed in .rodata
-            // section by default. We need to append them to the .rodata section
-            // and maintain the information about the offsets at which they are
-            // stored so that we can relocate loads from them later on.
-            let str_section_offsets = append_string_literals(&mut rodata, &binary, &buffer);
+    // First extract the bytes contained in all three main sections
+    let mut text: Vec<u8> = extract_section_bytes(".text", &binary, &buffer);
+    let mut data: Vec<u8> = extract_section_bytes(".data", &binary, &buffer);
+    let mut rodata: Vec<u8> = extract_section_bytes(".rodata", &binary, &buffer);
 
-            // Now we need to collect all global functions and append their names
-            // to the rodata section. We also need to maintain the information
-            // about the offsets at which the function names are stored.
-            // This is maintained for compatibility with the rbpf bytecode patching
-            // script. It isn't actually used by their VM.
-            let symbol_structs: Vec<Symbol> = extract_function_symbols(&mut rodata, &binary);
+    // Now handle all string literals that aren't placed in .rodata
+    // section by default. We need to append them to the .rodata section
+    // and maintain the information about the offsets at which they are
+    // stored so that we can relocate loads from them later on.
+    let str_section_offsets = append_string_literals(&mut rodata, &binary, &buffer);
 
-            let relocated_calls: Vec<RelocatedCall> = find_relocated_calls(&binary, &buffer);
+    // Now we need to collect all global functions and append their names
+    // to the rodata section. We also need to maintain the information
+    // about the offsets at which the function names are stored.
+    // This is maintained for compatibility with the rbpf bytecode patching
+    // script. It isn't actually used by their VM.
+    let symbol_structs: Vec<Symbol> = extract_function_symbols(&mut rodata, &binary);
 
-            resolve_rodata_relocations(&mut text, &binary, &buffer, &str_section_offsets);
+    let relocated_calls: Vec<RelocatedCall> = find_relocated_calls(&binary, &buffer);
 
-            round_section_length(&mut data);
-            round_section_length(&mut rodata);
+    resolve_rodata_relocations(&mut text, &binary, &buffer, &str_section_offsets);
 
-            // Now we write the new binary file
-            let header = Header {
-                magic: 123,
-                version: 0,
-                flags: 0,
-                data_len: data.len() as u32,
-                rodata_len: rodata.len() as u32,
-                text_len: text.len() as u32,
-                functions_len: symbol_structs.len() as u32,
-            };
+    round_section_length(&mut data);
+    round_section_length(&mut rodata);
 
-            let output_binary: Binary = Binary {
-                header,
-                data,
-                rodata,
-                text,
-                functions: symbol_structs,
-                relocated_calls,
-            };
+    // Now we write the new binary file
+    let header = Header {
+        magic: 123,
+        version: 0,
+        flags: 0,
+        data_len: data.len() as u32,
+        rodata_len: rodata.len() as u32,
+        text_len: text.len() as u32,
+        functions_len: symbol_structs.len() as u32,
+    };
 
-            let binary_data: Vec<u8> = output_binary.into();
+    let output_binary: Binary = Binary {
+        header,
+        data,
+        rodata,
+        text,
+        functions: symbol_structs,
+        relocated_calls,
+    };
 
-            let file_name = if let Some(binary_file) = binary_file {
-                binary_file.clone()
-            } else {
-                "a.bin".to_string()
-            };
+    let binary_data: Vec<u8> = output_binary.into();
 
-            let mut f = File::create(file_name).unwrap();
-            if log_enabled!(Level::Debug) {
-                debug!("Generated binary:");
-                print_bytes(&binary_data);
-            }
-            f.write_all(&binary_data).unwrap()
-        }
+    let file_name = if let Some(binary_file) = binary_file {
+        binary_file.clone()
     } else {
-        panic!("Invalid action args: {:?}", args);
+        "a.bin".to_string()
+    };
+
+    let mut f = File::create(file_name).unwrap();
+    if log_enabled!(Level::Debug) {
+        debug!("Generated binary:");
+        print_bytes(&binary_data);
     }
+    f.write_all(&binary_data).unwrap();
+
+    Ok(())
 }
 
 impl Into<Vec<u8>> for Binary {

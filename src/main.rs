@@ -30,8 +30,8 @@ async fn main() {
         args::Action::Sign { .. } => handle_sign(&args.command),
         args::Action::Pull { .. } => handle_pull(&args.command).await,
         args::Action::Execute { .. } => handle_execute(&args.command).await,
-        args::Action::Deploy { .. } => Ok(handle_deploy(&args.command).await),
-        args::Action::Relocate { .. } => Ok(handle_relocate(&args.command)),
+        args::Action::Deploy { .. } => handle_deploy(&args.command).await,
+        args::Action::Relocate { .. } => handle_relocate(&args.command),
     };
 
     if let Err(e) = result {

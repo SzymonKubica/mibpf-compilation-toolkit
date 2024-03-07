@@ -13,7 +13,7 @@ pub fn handle_compile(args: &Action) -> Result<(), String> {
         elf_section_name,
     } = args
     else {
-        return Err(format!("Invalid action args: {:?}", args));
+        return Err(format!("Invalid subcommand args: {:?}", args));
     };
     let message = "Compiling for Femto-Containers requires header files that \
                    are included in RIOT. Because of this, the compilation \
