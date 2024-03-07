@@ -4,24 +4,28 @@ use log::debug;
 
 use crate::{
     args::Action,
-    internal_representation::{ExecuteRequest, VmTarget},
+    internal_representation::{ExecuteRequest, VmTarget, BinaryFileLayout},
 };
 
 pub async fn handle_execute(args: &crate::args::Action) -> Result<(), String> {
     let Action::Execute {
         riot_ipv6_addr: riot_ipv6,
         target,
+        binary_layout,
         suit_storage_slot,
         host_network_interface: host_net_if,
         execute_on_coap,
     } = args
     else {
-        return Err(format!("Invalid action args: {:?}", args));
+        return Err(format!("Invalid subcommand args: {:?}", args));
     };
     let vm_target = VmTarget::from(target.as_str());
 
+    let binary_layout = BinaryFileLayout::from(binary_layout.as_str());
+
     let request: ExecuteRequest = ExecuteRequest {
         vm_target,
+        binary_layout,
         suit_location: *suit_storage_slot as usize,
     };
 

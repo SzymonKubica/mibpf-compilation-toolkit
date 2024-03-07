@@ -151,7 +151,7 @@ impl Into<Vec<u8>> for Binary {
 /// so that the VM executing the code can access the .rodata and .data sections
 /// properly.
 #[repr(C, packed)]
-struct Header {
+pub struct Header {
     magic: u32,
     version: u32,
     flags: u32,

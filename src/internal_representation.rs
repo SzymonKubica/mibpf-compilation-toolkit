@@ -5,7 +5,7 @@
 
 use core::fmt;
 
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 
 /// Specifies which version of the eBPF VM is to be used when the program is
 /// executed by the microcontroller.
@@ -33,14 +33,52 @@ impl fmt::Display for VmTarget {
     }
 }
 
+/// Specifies the different binary file layouts that are supported by the VMs
+/// Note that only the FemtoContainersHeader layout is compatible with the
+/// FemtoContainer VM.
+#[derive(Serialize)]
+pub enum BinaryFileLayout {
+    /// The most basic layout of the produced binary. Used by the original version
+    /// of the rBPF VM. It only includes the .text section from the ELF file.
+    /// The limitation is that none of the .rodata relocations work in this case.
+    OnlyTextSection,
+    /// A custom layout used by the VM version implemented for Femto-Containers.
+    /// It starts with a header section which specifies lengths of remaining sections
+    /// (.data, .rodata, .text). See [`crate::relocate::Header`] for more detailed
+    /// description of the header format.
+    FemtoContainersHeader,
+    /// An extension of the [`BytecodeLayout::FemtoContainersHeader`] bytecode
+    /// layout. It appends additional metadata used for resolving function
+    /// relocations and is supported by the modified version of rBPF VM.
+    FunctionRelocationMetadata,
+    /// Raw object files are sent to the device and the relocations are performed
+    /// there. This allows for maximum compatibility (e.g. .data relocations)
+    /// however it comes with a burden of an increased memory requirements.
+    /// TODO: figure out if it is even feasible to perform that on the embedded
+    /// device.
+    RawObjectFile,
+}
 
-/// Models the request that is sent to the target device to start executing the
-/// VM, it specifies the version of the VM that needs to be used to execute it
-/// and the index of the location in the SUIT storage from where the program
+impl From<&str> for BinaryFileLayout {
+    fn from(s: &str) -> Self {
+        match s {
+            "OnlyTextSection" => BinaryFileLayout::OnlyTextSection,
+            "FemtoContainersHeader" => BinaryFileLayout::FemtoContainersHeader,
+            "FunctionRelocationMetadata" => BinaryFileLayout::FunctionRelocationMetadata,
+            "RawObjectFile" => BinaryFileLayout::RawObjectFile,
+            _ => panic!("Invalid binary layout: {}", s),
+        }
+    }
+}
+
+/// Models the request that is sent to the target device to start executing the VM, it specifies
+/// the version of the VM that needs to be used to execute it, the layout of the bytecode file that
+/// the VM should expect and the index of the location in the SUIT storage from where the program
 /// binary needs to be loaded
 #[derive(Serialize)]
 pub struct ExecuteRequest {
     pub vm_target: VmTarget,
+    pub binary_layout: BinaryFileLayout,
     pub suit_location: usize,
 }
 

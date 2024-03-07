@@ -127,6 +127,11 @@ pub enum Action {
         #[arg(long, default_value_t = String::from("rBPF"))]
         target: String,
 
+        /// Layout of the binary file that the VM should expect.
+        /// Available options: OnlyTextSection, FemtoContainersHeader, FunctionRelocationMetadata, RawObjectFile,
+        #[arg(long, default_value_t = String::from("FunctionRelocationMetadata"))]
+        binary_layout: String,
+
         /// SUIT storage slot (0 or 1) where the signed binary blob is intended
         /// bo be loaded.
         #[arg(long, short, default_value_t = 0)]
