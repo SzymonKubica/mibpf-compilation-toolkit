@@ -52,6 +52,26 @@ pub fn handle_relocate(args: &crate::args::Action) -> Result<(), String> {
     else {
         return Err(format!("Invalid subcommand args: {:?}", args));
     };
+
+    let file_name = if let Some(binary_file) = binary_file {
+        binary_file.clone()
+    } else {
+        "a.bin".to_string()
+    };
+
+    let binary_data = get_relocated_bytes(&source_object_file);
+
+    let mut f = File::create(file_name).unwrap();
+    if log_enabled!(Level::Debug) {
+        debug!("Generated binary:");
+        print_bytes(&binary_data);
+    }
+    f.write_all(&binary_data).unwrap();
+
+    Ok(())
+}
+
+pub fn get_relocated_bytes(source_object_file: &str) -> Vec<u8> {
     // Read in the object file into the buffer.
     let buffer = read_file_as_bytes(source_object_file);
     let Ok(binary) = goblin::elf::Elf::parse(&buffer) else {
@@ -103,22 +123,7 @@ pub fn handle_relocate(args: &crate::args::Action) -> Result<(), String> {
         relocated_calls,
     };
 
-    let binary_data: Vec<u8> = output_binary.into();
-
-    let file_name = if let Some(binary_file) = binary_file {
-        binary_file.clone()
-    } else {
-        "a.bin".to_string()
-    };
-
-    let mut f = File::create(file_name).unwrap();
-    if log_enabled!(Level::Debug) {
-        debug!("Generated binary:");
-        print_bytes(&binary_data);
-    }
-    f.write_all(&binary_data).unwrap();
-
-    Ok(())
+    output_binary.into()
 }
 
 impl Into<Vec<u8>> for Binary {

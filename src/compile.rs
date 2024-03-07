@@ -10,7 +10,6 @@ pub fn handle_compile(args: &Action) -> Result<(), String> {
         bpf_source_file,
         binary_file,
         out_dir,
-        elf_section_name,
     } = args
     else {
         return Err(format!("Invalid subcommand args: {:?}", args));

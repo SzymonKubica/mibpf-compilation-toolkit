@@ -251,6 +251,12 @@ checksum = "7f30e7476521f6f8af1a1c4c0b8cc94f0bee37d91763d0ca2665f299b6cd8aec"
 
 [[package]]
 name = "byteorder"
+version = "0.5.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0fc10e8cc6b2580fda3f36eb6dc5316657f812a3df879a44a66fc9f0fdbc4855"
+
+[[package]]
+name = "byteorder"
 version = "1.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1fd0f2584146f6f2ef48085050886acf353beff7305ebd1ae69500e27c67f64b"
@@ -415,7 +421,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1645a65a99c7c8d345761f4b75a6ffe5be3b3b27a93ee731fccc5050ba6be97c"
 dependencies = [
  "ascii",
- "byteorder",
+ "byteorder 1.5.0",
 ]
 
 [[package]]
@@ -583,9 +589,12 @@ dependencies = [
 
 [[package]]
 name = "elf"
-version = "0.7.4"
+version = "0.0.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4445909572dbd556c457c849c4ca58623d84b27c8fff1e74b0b4227d8b90d17b"
+checksum = "4841de15dbe0e49b9b62a417589299e3be0d557e0900d36acb87e6dae47197f5"
+dependencies = [
+ "byteorder 0.5.3",
+]
 
 [[package]]
 name = "elliptic-curve"
@@ -1283,7 +1292,7 @@ version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b536dc5c7e3a730d06c578a41df1fbcccd66240a7a9bd5f150a0826291f01c66"
 dependencies = [
- "byteorder",
+ "byteorder 1.5.0",
  "combine",
  "libc",
  "time 0.2.27",
@@ -2081,7 +2090,7 @@ dependencies = [
  "aes-gcm",
  "async-trait",
  "bincode",
- "byteorder",
+ "byteorder 1.5.0",
  "cbc",
  "ccm",
  "der-parser",

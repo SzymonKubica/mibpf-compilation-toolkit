@@ -16,11 +16,6 @@ pub enum Action {
         /// Directory for the object files
         #[arg(long, default_value_t = String::from("./out"))]
         out_dir: String,
-
-        /// Name of the elf section of the main function in the eBPF program.
-        #[arg(long, default_value_t = String::from(".text"))]
-        // Defaults to .text to be consistent with Femto-Containers
-        elf_section_name: String,
     },
 
     /// Sign the eBPF binary for SUIT update protocol. Generates  the manifest,
@@ -83,10 +78,10 @@ pub enum Action {
         #[arg(long, default_value_t = String::from("./out"))]
         out_dir: String,
 
-        /// Name of the elf section of the main function in the eBPF program.
-        /// Only applies for the rbpf code snippets.
-        #[arg(long, default_value_t = String::from(".main"))]
-        elf_section_name: String,
+        /// Layout of the binary file that the VM should expect.
+        /// Available options: OnlyTextSection, FemtoContainersHeader, FunctionRelocationMetadata, RawObjectFile,
+        #[arg(long, default_value_t = String::from("FunctionRelocationMetadata"))]
+        binary_layout: String,
 
         /// Network interface of the machine hosting the CoAP fileserver.
         /// Used to find the IPv6 address of the fileserver.
