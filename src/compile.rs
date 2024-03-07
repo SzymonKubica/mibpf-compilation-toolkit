@@ -39,7 +39,7 @@ pub fn handle_compile(args: &Action) -> Result<(), String> {
     // set we rename the binary created in the previous step
     if let Some(file_name) = binary_file {
         let Ok(_) = rename_generated_binary(
-            source_dir_name,
+            source_path.to_str().unwrap(),
             source_directory.to_str().unwrap(),
             file_name,
         ) else {

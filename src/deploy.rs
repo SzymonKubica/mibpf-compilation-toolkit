@@ -1,5 +1,7 @@
 use std::{fs::File, io::Write, path::PathBuf};
 
+use log::debug;
+
 use crate::{
     args::Action, compile::handle_compile, internal_representation::BinaryFileLayout,
     pull::handle_pull, relocate::get_relocated_bytes, sign::handle_sign,
@@ -38,6 +40,7 @@ pub async fn handle_deploy(args: &crate::args::Action) -> Result<(), String> {
 
     let binary_file_layout = BinaryFileLayout::from(binary_layout.as_str());
 
+    debug!("Generating Binary file layout: {:?}", binary_file_layout);
     if binary_file_layout != BinaryFileLayout::FemtoContainersHeader {
         // In this case we need to produce the binary ourselves and place it in
         // the coaproot directory. This is because the binary produced by RIOT
@@ -94,8 +97,9 @@ fn extract_text_section(bpf_source_file: &str, out_dir: &str) -> Vec<u8> {
 }
 
 fn get_relocated_binary(bpf_source_file: &str, out_dir: &str) -> Vec<u8> {
+    debug!("Generating the binary using the custom relocation script.");
     let object_file = get_object_file_name(bpf_source_file, out_dir);
-    get_relocated_bytes(&object_file)
+    get_relocated_bytes(&object_file).unwrap()
 }
 
 fn get_object_file_name(bpf_source_file: &str, out_dir: &str) -> String {

@@ -36,7 +36,7 @@ impl fmt::Display for VmTarget {
 /// Specifies the different binary file layouts that are supported by the VMs
 /// Note that only the FemtoContainersHeader layout is compatible with the
 /// FemtoContainer VM.
-#[derive(Serialize, Eq, PartialEq)]
+#[derive(Serialize, Eq, PartialEq, Debug)]
 pub enum BinaryFileLayout {
     /// The most basic layout of the produced binary. Used by the original version
     /// of the rBPF VM. It only includes the .text section from the ELF file.

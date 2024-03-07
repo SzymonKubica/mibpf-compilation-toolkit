@@ -59,7 +59,7 @@ pub fn handle_relocate(args: &crate::args::Action) -> Result<(), String> {
         "a.bin".to_string()
     };
 
-    let binary_data = get_relocated_bytes(&source_object_file);
+    let binary_data = get_relocated_bytes(&source_object_file)?;
 
     let mut f = File::create(file_name).unwrap();
     if log_enabled!(Level::Debug) {
@@ -71,7 +71,7 @@ pub fn handle_relocate(args: &crate::args::Action) -> Result<(), String> {
     Ok(())
 }
 
-pub fn get_relocated_bytes(source_object_file: &str) -> Vec<u8> {
+pub fn get_relocated_bytes(source_object_file: &str) -> Result<Vec<u8>, String> {
     // Read in the object file into the buffer.
     let buffer = read_file_as_bytes(source_object_file);
     let Ok(binary) = goblin::elf::Elf::parse(&buffer) else {
@@ -123,7 +123,7 @@ pub fn get_relocated_bytes(source_object_file: &str) -> Vec<u8> {
         relocated_calls,
     };
 
-    output_binary.into()
+    Ok(output_binary.into())
 }
 
 impl Into<Vec<u8>> for Binary {
@@ -414,7 +414,7 @@ fn patch_text(
     text[reloc.r_offset as usize..reloc.r_offset as usize + 16].copy_from_slice((&instr).into());
 }
 
-fn read_file_as_bytes(source_object_file: &String) -> Vec<u8> {
+fn read_file_as_bytes(source_object_file: &str) -> Vec<u8> {
     let mut f = File::open(&source_object_file).expect("File not found.");
     let metadata = fs::metadata(&source_object_file).expect("Unable to read file metadata");
     let mut buffer = vec![0; metadata.len() as usize];
