@@ -8,10 +8,6 @@ pub enum Action {
         #[arg(long)]
         bpf_source_file: String,
 
-        /// Target version of the eBPF vm. Available options: Femto-Containers, rBPF
-        #[arg(long, default_value_t = String::from("rBPF"))]
-        target: String,
-
         /// Optional override for the name of the file resulting from the compilation
         /// It defaults to <source_file>.bin
         #[arg(long)]
@@ -148,23 +144,6 @@ pub enum Action {
         /// Whether the executing program should get access to the CoAP packet
         #[arg(long, default_value_t = false)]
         execute_on_coap: bool,
-    },
-    // Runs the rBPF VM on the given binary file.
-    EmulateExecution {
-        /// Target version of the eBPF binary. Available options: Femto-Containers, rBPF
-        /// In case of femto-containers, the binary should be prepared with their
-        /// gen_rbp.py script
-        #[arg(long, default_value_t = String::from("rBPF"))]
-        target: String,
-
-        /// Name of the elf section of the main function in the eBPF program.
-        #[arg(long, default_value_t = String::from(".text"))]
-        // Defaults to .text to be consistent with Femto-Containers
-        elf_section_name: String,
-
-        /// Name of the binary file to be executed in the emulated VM environment.
-        #[arg(long)]
-        binary_file: Option<String>,
     },
     // Performs bytecode-patching similar to the Femto-Containers gen_rbf script.
     Relocate {

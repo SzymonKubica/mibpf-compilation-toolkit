@@ -28,10 +28,9 @@ async fn main() {
     let result = match &args.command {
         args::Action::Compile { .. } => handle_compile(&args.command),
         args::Action::Sign { .. } => handle_sign(&args.command),
-        args::Action::Pull { .. } => Ok(handle_pull(&args.command).await),
+        args::Action::Pull { .. } => handle_pull(&args.command).await,
         args::Action::Execute { .. } => Ok(handle_execute(&args.command).await),
         args::Action::Deploy { .. } => Ok(handle_deploy(&args.command).await),
-        args::Action::EmulateExecution { .. } => Ok(handle_emulate(&args.command)),
         args::Action::Relocate { .. } => Ok(handle_relocate(&args.command)),
     };
 
