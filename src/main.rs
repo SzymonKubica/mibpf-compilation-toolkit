@@ -1,7 +1,7 @@
 use clap::Parser;
 use compile::handle_compile;
 use deploy::handle_deploy;
-use execute::{handle_emulate, handle_execute};
+use execute::handle_execute;
 use pull::handle_pull;
 use relocate::handle_relocate;
 use sign::handle_sign;
@@ -29,7 +29,7 @@ async fn main() {
         args::Action::Compile { .. } => handle_compile(&args.command),
         args::Action::Sign { .. } => handle_sign(&args.command),
         args::Action::Pull { .. } => handle_pull(&args.command).await,
-        args::Action::Execute { .. } => Ok(handle_execute(&args.command).await),
+        args::Action::Execute { .. } => handle_execute(&args.command).await,
         args::Action::Deploy { .. } => Ok(handle_deploy(&args.command).await),
         args::Action::Relocate { .. } => Ok(handle_relocate(&args.command)),
     };
