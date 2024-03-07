@@ -79,10 +79,6 @@ pub enum Action {
         #[arg(long)]
         bpf_source_file: String,
 
-        /// Target version of the eBPF vm. Available options: Femto-Containers, rBPF
-        #[arg(long, default_value_t = String::from("rBPF"))]
-        target: String,
-
         /// Directory for the object files
         #[arg(long, default_value_t = String::from("./out"))]
         out_dir: String,
