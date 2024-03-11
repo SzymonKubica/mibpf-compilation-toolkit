@@ -67,6 +67,10 @@ pub enum Action {
         /// Used to find the IPv6 address of the fileserver.
         #[arg(long, default_value_t = String::from("wlan0"))]
         host_network_interface: String,
+
+        /// Network interface of the RIOT instance
+        #[arg(long, default_value_t = String::from("5"))]
+        riot_network_interface: String,
     },
     /// Compiles, signs and initiates firmware pull in one step.
     Deploy {
@@ -87,6 +91,10 @@ pub enum Action {
         /// Used to find the IPv6 address of the fileserver.
         #[arg(long, default_value_t = String::from("wlan0"))]
         host_network_interface: String,
+
+        /// Network interface of the RIOT instance
+        #[arg(long, default_value_t = String::from("5"))]
+        riot_network_interface: String,
 
         /// Name of the target microcontroller board.
         #[arg(long, default_value_t = String::from("nucleo-f439zi"))]

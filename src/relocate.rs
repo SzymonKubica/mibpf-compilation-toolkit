@@ -240,7 +240,7 @@ fn append_string_literals<'a>(
     for section in &binary.section_headers {
         if let Some(section_name) = binary.strtab.get_at(section.sh_name) {
             // The string literals are stored in the .rodata.str.1 section
-            if section_name.contains(".rodata.str") {
+            if section_name.contains(".rodata.") {
                 str_section_offsets.insert(section_name, rodata.len());
                 rodata.extend(
                     &buffer[section.sh_offset as usize

@@ -91,4 +91,5 @@ pub struct ExecuteRequest {
 pub struct SuitPullRequest {
     pub ip_addr: String,
     pub manifest: String,
+    pub riot_network_interface: String,
 }
