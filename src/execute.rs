@@ -26,7 +26,7 @@ pub async fn handle_execute(args: &crate::args::Action) -> Result<(), String> {
     let request: ExecuteRequest = ExecuteRequest {
         vm_target,
         binary_layout,
-        suit_location: *suit_storage_slot as usize,
+        suit_slot: *suit_storage_slot as usize,
     };
 
     let url = if !*execute_on_coap {

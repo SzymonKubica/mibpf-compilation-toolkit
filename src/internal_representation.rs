@@ -79,7 +79,7 @@ impl From<&str> for BinaryFileLayout {
 pub struct ExecuteRequest {
     pub vm_target: VmTarget,
     pub binary_layout: BinaryFileLayout,
-    pub suit_location: usize,
+    pub suit_slot: usize,
 }
 
 /// Models the request that is sent to the target device to pull a specified
