@@ -4,7 +4,7 @@ use log::debug;
 
 use crate::{
     args::Action,
-    internal_representation::{ExecuteRequest, VmTarget, BinaryFileLayout},
+    internal_representation::{BinaryFileLayout, ExecuteRequest, VmTarget},
 };
 
 pub async fn handle_execute(args: &crate::args::Action) -> Result<(), String> {
@@ -27,6 +27,7 @@ pub async fn handle_execute(args: &crate::args::Action) -> Result<(), String> {
         vm_target,
         binary_layout,
         suit_slot: *suit_storage_slot as usize,
+        allowed_helpers: 0,
     };
 
     let url = if !*execute_on_coap {

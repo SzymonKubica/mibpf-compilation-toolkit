@@ -80,6 +80,7 @@ pub struct ExecuteRequest {
     pub vm_target: VmTarget,
     pub binary_layout: BinaryFileLayout,
     pub suit_slot: usize,
+    pub allowed_helpers: u8,
 }
 
 /// Models the request that is sent to the target device to pull a specified
