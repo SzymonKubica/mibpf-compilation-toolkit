@@ -10,11 +10,12 @@ use serde::{Deserialize, Serialize};
 /// Specifies which version of the eBPF VM is to be used when the program is
 /// executed by the microcontroller.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[repr(u8)]
 pub enum VmTarget {
-    /// The eBPF program will be executed by the FemtoContainer VM.
-    FemtoContainer,
     /// The eBPF program will be executed by the rBPF VM.
-    Rbpf,
+    Rbpf = 0,
+    /// The eBPF program will be executed by the FemtoContainer VM.
+    FemtoContainer = 1,
 }
 
 impl From<&str> for VmTarget {
@@ -37,26 +38,27 @@ impl fmt::Display for VmTarget {
 /// Note that only the FemtoContainersHeader layout is compatible with the
 /// FemtoContainer VM.
 #[derive(Serialize, Eq, PartialEq, Debug)]
+#[repr(u8)]
 pub enum BinaryFileLayout {
     /// The most basic layout of the produced binary. Used by the original version
     /// of the rBPF VM. It only includes the .text section from the ELF file.
     /// The limitation is that none of the .rodata relocations work in this case.
-    OnlyTextSection,
+    OnlyTextSection = 0,
     /// A custom layout used by the VM version implemented for Femto-Containers.
     /// It starts with a header section which specifies lengths of remaining sections
     /// (.data, .rodata, .text). See [`crate::relocate::Header`] for more detailed
     /// description of the header format.
-    FemtoContainersHeader,
+    FemtoContainersHeader = 1,
     /// An extension of the [`BytecodeLayout::FemtoContainersHeader`] bytecode
     /// layout. It appends additional metadata used for resolving function
     /// relocations and is supported by the modified version of rBPF VM.
-    FunctionRelocationMetadata,
+    FunctionRelocationMetadata = 2,
     /// Raw object files are sent to the device and the relocations are performed
     /// there. This allows for maximum compatibility (e.g. .data relocations)
     /// however it comes with a burden of an increased memory requirements.
     /// TODO: figure out if it is even feasible to perform that on the embedded
     /// device.
-    RawObjectFile,
+    RawObjectFile = 3,
 }
 
 impl From<&str> for BinaryFileLayout {
@@ -77,10 +79,11 @@ impl From<&str> for BinaryFileLayout {
 /// binary needs to be loaded
 #[derive(Serialize)]
 pub struct ExecuteRequest {
-    pub vm_target: VmTarget,
-    pub binary_layout: BinaryFileLayout,
-    pub suit_slot: usize,
-    pub allowed_helpers: u8,
+    pub vm_target: u8,
+    pub binary_layout: u8,
+    pub suit_slot: u8,
+    pub helper_set: u8,
+    pub helper_indices: u8,
 }
 
 /// Models the request that is sent to the target device to pull a specified

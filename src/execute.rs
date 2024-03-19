@@ -15,6 +15,8 @@ pub async fn handle_execute(args: &crate::args::Action) -> Result<(), String> {
         suit_storage_slot,
         host_network_interface: host_net_if,
         execute_on_coap,
+        helper_set,
+        helper_indices,
     } = args
     else {
         return Err(format!("Invalid subcommand args: {:?}", args));
@@ -24,10 +26,11 @@ pub async fn handle_execute(args: &crate::args::Action) -> Result<(), String> {
     let binary_layout = BinaryFileLayout::from(binary_layout.as_str());
 
     let request: ExecuteRequest = ExecuteRequest {
-        vm_target,
-        binary_layout,
-        suit_slot: *suit_storage_slot as usize,
-        allowed_helpers: 0,
+        vm_target: vm_target as u8,
+        binary_layout: binary_layout as u8,
+        suit_slot: *suit_storage_slot as u8,
+        helper_set: *helper_set,
+        helper_indices: encode(&helper_indices)
     };
 
     let url = if !*execute_on_coap {
@@ -39,6 +42,7 @@ pub async fn handle_execute(args: &crate::args::Action) -> Result<(), String> {
     debug!("Sending a request to the url: {}", url);
 
     let payload = serde_json::to_string(&request).unwrap();
+    println!("{}", payload);
 
     let Ok(_) = Command::new("aiocoap-client")
         .arg("-m")
@@ -54,4 +58,12 @@ pub async fn handle_execute(args: &crate::args::Action) -> Result<(), String> {
     };
 
     Ok(())
+}
+
+fn encode(available_indices: &[u8]) -> u8 {
+    let mut encoding = 0;
+    for i in available_indices {
+        encoding |= 1 << i;
+    }
+    return encoding;
 }
