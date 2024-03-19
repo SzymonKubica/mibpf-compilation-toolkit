@@ -9,26 +9,36 @@ use serde::{Deserialize, Serialize};
 
 /// Specifies which version of the eBPF VM is to be used when the program is
 /// executed by the microcontroller.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
 #[repr(u8)]
-pub enum VmTarget {
+pub enum TargetVM {
     /// The eBPF program will be executed by the rBPF VM.
     Rbpf = 0,
     /// The eBPF program will be executed by the FemtoContainer VM.
     FemtoContainer = 1,
 }
 
-impl From<&str> for VmTarget {
+impl From<u8> for TargetVM {
+    fn from(v: u8) -> Self {
+        match v {
+            0 => TargetVM::Rbpf,
+            1 => TargetVM::FemtoContainer,
+            _ => panic!("Invalid VmTarget value"),
+        }
+    }
+}
+
+impl From<&str> for TargetVM {
     fn from(s: &str) -> Self {
         match s {
-            "FemtoContainer" => VmTarget::FemtoContainer,
-            "rBPF" => VmTarget::Rbpf,
+            "FemtoContainer" => TargetVM::FemtoContainer,
+            "rBPF" => TargetVM::Rbpf,
             _ => panic!("Invalid vm target: {}", s),
         }
     }
 }
 
-impl fmt::Display for VmTarget {
+impl fmt::Display for TargetVM {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{:?}", self)
     }
@@ -37,7 +47,7 @@ impl fmt::Display for VmTarget {
 /// Specifies the different binary file layouts that are supported by the VMs
 /// Note that only the FemtoContainersHeader layout is compatible with the
 /// FemtoContainer VM.
-#[derive(Serialize, Eq, PartialEq, Debug)]
+#[derive(Serialize, Eq, Clone, Copy, PartialEq, Debug)]
 #[repr(u8)]
 pub enum BinaryFileLayout {
     /// The most basic layout of the produced binary. Used by the original version
@@ -73,17 +83,22 @@ impl From<&str> for BinaryFileLayout {
     }
 }
 
-/// Models the request that is sent to the target device to start executing the VM, it specifies
-/// the version of the VM that needs to be used to execute it, the layout of the bytecode file that
-/// the VM should expect and the index of the location in the SUIT storage from where the program
-/// binary needs to be loaded
-#[derive(Serialize)]
-pub struct ExecuteRequest {
-    pub vm_target: u8,
-    pub binary_layout: u8,
-    pub suit_slot: u8,
-    pub helper_set: u8,
-    pub helper_indices: u8,
+impl From<u8> for BinaryFileLayout {
+    fn from(val: u8) -> Self {
+        match val {
+            0 => BinaryFileLayout::OnlyTextSection,
+            1 => BinaryFileLayout::FemtoContainersHeader,
+            2 => BinaryFileLayout::FunctionRelocationMetadata,
+            3 => BinaryFileLayout::RawObjectFile,
+            _ => panic!("Unknown binary file layout: {}", val),
+        }
+    }
+}
+
+#[derive(Clone, Serialize, Deserialize)]
+pub struct VMExecutionRequestMsg {
+    pub configuration: u8,
+    pub available_helpers: [u8; 3],
 }
 
 /// Models the request that is sent to the target device to pull a specified

@@ -149,12 +149,7 @@ pub enum Action {
         #[arg(long, default_value_t = false)]
         execute_on_coap: bool,
 
-        /// Controlls which set of helper functions is available to the VM when
-        /// executing on the microcontroller.
-        #[arg(long, short, default_value_t = 0)]
-        helper_set: u8,
-
-        /// Controlls which indices of helpers within the current set are available
+        /// Controlls which indices of helpers are made available to the VM
         #[clap(short, long, value_parser, num_args = 1.., value_delimiter = ' ')]
         helper_indices: Vec<u8>,
     },
