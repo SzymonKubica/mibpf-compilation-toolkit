@@ -161,6 +161,10 @@ pub enum Action {
         /// Name of the binary file to be generated
         #[arg(long)]
         binary_file: Option<String>,
+        /// If set, the relocations aren't performed and the relocation step
+        /// just strips off the debug information and the .BTF, .BTF.ext sections
+        #[arg(long, default_value_t = false)]
+        strip_debug: bool,
     },
 }
 

@@ -2,6 +2,7 @@ use std::{
     collections::HashMap,
     fs::{self, File},
     io::{Read, Write},
+    process::Command,
 };
 
 use goblin::{
@@ -43,15 +44,19 @@ struct Binary {
 /// Relocate subcommand is responsible for performing the post-processing of the
 /// compiled eBPF bytecode before it can be loaded onto the target device. It
 /// handles function relocations and read only data relocations.
-///
 pub fn handle_relocate(args: &crate::args::Action) -> Result<(), String> {
     let Action::Relocate {
         source_object_file,
         binary_file,
+        strip_debug,
     } = args
     else {
         return Err(format!("Invalid subcommand args: {:?}", args));
     };
+
+    if *strip_debug {
+        return strip_binary(source_object_file, binary_file.as_ref());
+    }
 
     let file_name = if let Some(binary_file) = binary_file {
         binary_file.clone()
@@ -69,6 +74,32 @@ pub fn handle_relocate(args: &crate::args::Action) -> Result<(), String> {
     f.write_all(&binary_data).unwrap();
 
     Ok(())
+}
+
+fn strip_binary(source_object_file: &str, binary_file: Option<&String>) -> Result<(), String> {
+    // strip bpf/helper-tests/out/gcoap.o -d -R .BTF -R .BTF.ext -o test
+    let file_name = if let Some(binary_file) = binary_file {
+        binary_file.clone()
+    } else {
+        "a.bin".to_string()
+    };
+    let result = Command::new("strip")
+        .arg(source_object_file)
+        .arg("-d")
+        .arg("-R")
+        .arg(".BTF")
+        .arg("-R")
+        .arg(".BTF.ext")
+        .arg("-o")
+        .arg(file_name)
+        .spawn()
+        .expect("Failed to compile the eBPF bytecode.")
+        .wait();
+
+    match result {
+        Ok(_) => Ok(()),
+        Err(e) => Err(format!("Failed to strip the binary: {}", e)),
+    }
 }
 
 pub fn get_relocated_bytes(source_object_file: &str) -> Result<Vec<u8>, String> {
