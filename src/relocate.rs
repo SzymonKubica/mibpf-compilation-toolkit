@@ -55,7 +55,8 @@ pub fn handle_relocate(args: &crate::args::Action) -> Result<(), String> {
     };
 
     if *strip_debug {
-        return strip_binary(source_object_file, binary_file.as_ref());
+        let _ = strip_binary(source_object_file, binary_file.as_ref());
+        return relocate_in_place(binary_file.as_ref().unwrap());
     }
 
     let file_name = if let Some(binary_file) = binary_file {
@@ -76,13 +77,14 @@ pub fn handle_relocate(args: &crate::args::Action) -> Result<(), String> {
     Ok(())
 }
 
-fn strip_binary(source_object_file: &str, binary_file: Option<&String>) -> Result<(), String> {
+pub fn strip_binary(source_object_file: &str, binary_file: Option<&String>) -> Result<(), String> {
     // strip bpf/helper-tests/out/gcoap.o -d -R .BTF -R .BTF.ext -o test
     let file_name = if let Some(binary_file) = binary_file {
         binary_file.clone()
     } else {
         "a.bin".to_string()
     };
+
     let result = Command::new("strip")
         .arg(source_object_file)
         .arg("-d")
@@ -101,12 +103,43 @@ fn strip_binary(source_object_file: &str, binary_file: Option<&String>) -> Resul
         Err(e) => Err(format!("Failed to strip the binary: {}", e)),
     }
 }
+pub fn relocate_in_place(source_object_file: &str) -> Result<(), String> {
+    let buffer = read_file_as_bytes(source_object_file);
+    let Ok(binary) = goblin::elf::Elf::parse(&buffer) else {
+        return Err("Failed to parse the ELF binary".to_string());
+    };
+
+    let relocations = find_relocations(&binary, &buffer);
+    for relocation in relocations {
+        debug!(
+            "Relocation found: offset: {:x}, r_addend: {:?}, r_sym: {}, r_type: {}",
+            relocation.r_offset, relocation.r_addend, relocation.r_sym, relocation.r_type
+        );
+        if let Some(symbol) = binary.syms.get(relocation.r_sym) {
+            debug!(
+                "Looking up the relocation symbol: name: {}, value: {}, is_function? : {}",
+                symbol.st_name,
+                symbol.st_value,
+                symbol.is_function()
+            );
+            let section = binary.section_headers.get(symbol.st_shndx).unwrap();
+            let section_name = binary.strtab.get_at(section.sh_name).unwrap();
+
+            debug!(
+                "Relocation symbol section: {}, name: {}",
+                symbol.st_shndx, section_name
+            );
+        }
+    }
+
+    Ok(())
+}
 
 pub fn get_relocated_bytes(source_object_file: &str) -> Result<Vec<u8>, String> {
     // Read in the object file into the buffer.
     let buffer = read_file_as_bytes(source_object_file);
     let Ok(binary) = goblin::elf::Elf::parse(&buffer) else {
-        return Err("Failed to parse the Elf binary".to_string());
+        return Err("Failed to parse the ELF binary".to_string());
     };
 
     // First extract the bytes contained in all three main sections
