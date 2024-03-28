@@ -114,6 +114,7 @@ pub struct SuitPullRequest {
 /// Encapsulates the configuration of a given VM execution, it defines the target
 /// implementation of the VM, the file layout of the binary that the VM expects
 /// and the SUIT storage slot from where the file needs to be loaded.
+#[derive(PartialEq, Eq, Debug)]
 pub struct VMConfiguration {
     pub vm_target: TargetVM,
     pub binary_layout: BinaryFileLayout,
@@ -161,5 +162,24 @@ impl VMConfiguration {
             suit_slot: (encoding >> 1) & 0b1,
             binary_layout: BinaryFileLayout::from((encoding >> 2) & 0b11),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn decode_after_encode_is_identity() {
+        let configuration = VMConfiguration::new(
+            TargetVM::FemtoContainer,
+            BinaryFileLayout::FemtoContainersHeader,
+            1,
+        );
+
+        let encoded = configuration.encode();
+        let decoded = VMConfiguration::decode(encoded);
+
+        assert_eq!(configuration, decoded);
     }
 }

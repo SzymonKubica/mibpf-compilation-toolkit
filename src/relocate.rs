@@ -114,7 +114,7 @@ pub fn relocate_in_place(buffer: &mut [u8]) -> Result<(), String> {
         return Err("Failed to parse the ELF binary".to_string());
     };
 
-let text_section = binary.section_headers.get(1).unwrap();
+    let text_section = binary.section_headers.get(1).unwrap();
 
     let relocations = find_relocations(&binary, &buffer);
     let mut relocations_to_patch = vec![];
@@ -139,43 +139,42 @@ let text_section = binary.section_headers.get(1).unwrap();
                 section.sh_offset
             );
 
-            relocations_to_patch.push((relocation.r_offset as usize, program_address as u32 + section.sh_offset as u32 + symbol.st_value as u32));
-
+            relocations_to_patch.push((
+                relocation.r_offset as usize,
+                program_address as u32 + section.sh_offset as u32 + symbol.st_value as u32,
+            ));
         }
     }
 
-    let text = &mut buffer[text_section.sh_offset as usize..(text_section.sh_offset + text_section.sh_size) as usize];
+    let text = &mut buffer
+        [text_section.sh_offset as usize..(text_section.sh_offset + text_section.sh_size) as usize];
     for (offset, value) in relocations_to_patch {
-            if offset >= text.len() {
-                continue;
-            }
+        if offset >= text.len() {
+            continue;
+        }
 
-            debug!("Patching text section at offset: {:x} with new immediate value: {:x}", offset, value);
-            // we patch the text here
-            // We only patch LDDW instructions
-            if text[offset] != LDDW_OPCODE as u8 {
-                debug!(
-                    "No LDDW instruction at {} offset in .text section",
-                    offset
-                );
-                continue;
-            }
+        debug!(
+            "Patching text section at offset: {:x} with new immediate value: {:x}",
+            offset, value
+        );
+        // we patch the text here
+        // We only patch LDDW instructions
+        if text[offset] != LDDW_OPCODE as u8 {
+            debug!("No LDDW instruction at {} offset in .text section", offset);
+            continue;
+        }
 
-            // We instantiate the instruction struct to modify it
-            let instr_bytes =
-                &text[offset..offset + 16];
+        // We instantiate the instruction struct to modify it
+        let instr_bytes = &text[offset..offset + 16];
 
-            let mut instr: Lddw = Lddw::from(instr_bytes);
-            // Also add the program base address here when relocating on the actual device
-            instr.immediate_l += value;
-            text[offset..offset + 16]
-                .copy_from_slice((&instr).into());
+        let mut instr: Lddw = Lddw::from(instr_bytes);
+        // Also add the program base address here when relocating on the actual device
+        instr.immediate_l += value;
+        text[offset..offset + 16].copy_from_slice((&instr).into());
 
-            println!("Patched text section: ");
-            print_bytes(&text);
-
+        println!("Patched text section: ");
+        print_bytes(&text);
     }
-
 
     Ok(())
 }
@@ -453,14 +452,9 @@ fn find_relocations(binary: &Elf<'_>, buffer: &[u8]) -> Vec<Reloc> {
         if section.sh_type == goblin::elf::section_header::SHT_REL {
             let offset = section.sh_offset as usize;
             let size = section.sh_size as usize;
-            let relocs = goblin::elf::reloc::RelocSection::parse(
-                &buffer,
-                offset,
-                size,
-                false,
-                context,
-            )
-            .unwrap();
+            let relocs =
+                goblin::elf::reloc::RelocSection::parse(&buffer, offset, size, false, context)
+                    .unwrap();
             relocs.iter().for_each(|reloc| relocations.push(reloc));
         }
     }
