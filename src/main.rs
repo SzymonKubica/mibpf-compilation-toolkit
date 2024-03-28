@@ -10,7 +10,6 @@ mod args;
 mod compile;
 mod deploy;
 mod execute;
-mod internal_representation;
 mod pull;
 mod relocate;
 mod sign;
@@ -19,6 +18,7 @@ extern crate clap;
 extern crate coap;
 extern crate env_logger;
 extern crate rbpf;
+extern crate internal_representation;
 
 #[tokio::main]
 async fn main() {

@@ -1,4 +1,4 @@
-use std::process::Command;
+use std::{process::Command, str::FromStr};
 
 use log::debug;
 
@@ -20,12 +20,14 @@ pub async fn handle_execute(args: &crate::args::Action) -> Result<(), String> {
     else {
         return Err(format!("Invalid subcommand args: {:?}", args));
     };
-    let vm_target = TargetVM::from(target.as_str());
+    let Ok(vm_target) = TargetVM::from_str(target.as_str()) else {
+        return Err(format!("Invalid subcommand args: {:?}", args));
+    };
 
     let binary_layout = BinaryFileLayout::from(binary_layout.as_str());
 
     let request = VMExecutionRequestMsg {
-        configuration: VMConfiguration::new(vm_target, binary_layout, *suit_storage_slot as u8)
+        configuration: VMConfiguration::new(vm_target, binary_layout, *suit_storage_slot as usize)
             .encode(),
         available_helpers: encode(helper_indices),
     };
