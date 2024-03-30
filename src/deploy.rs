@@ -1,14 +1,13 @@
+use std::str::FromStr;
 use std::{fs::File, io::Write, path::PathBuf};
 
 use log::debug;
 
+use bytecode_patching::{get_relocated_bytes, strip_binary};
+
 use crate::{
-    args::Action,
-    compile::handle_compile,
-    internal_representation::BinaryFileLayout,
-    pull::handle_pull,
-    relocate::{get_relocated_bytes, strip_binary},
-    sign::handle_sign,
+    args::Action, compile::handle_compile, internal_representation::BinaryFileLayout,
+    pull::handle_pull, sign::handle_sign,
 };
 
 pub async fn handle_deploy(args: &crate::args::Action) -> Result<(), String> {
@@ -43,7 +42,7 @@ pub async fn handle_deploy(args: &crate::args::Action) -> Result<(), String> {
         out_dir: out_dir.to_string(),
     })?;
 
-    let binary_file_layout = BinaryFileLayout::from(binary_layout.as_str());
+    let binary_file_layout = binary_layout.as_str().parse::<BinaryFileLayout>().unwrap();
 
     debug!("Generating a binary with layout: {:?}", binary_file_layout);
     if binary_file_layout != BinaryFileLayout::FemtoContainersHeader {

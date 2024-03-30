@@ -24,10 +24,10 @@ pub async fn handle_execute(args: &crate::args::Action) -> Result<(), String> {
         return Err(format!("Invalid subcommand args: {:?}", args));
     };
 
-    let binary_layout = BinaryFileLayout::from(binary_layout.as_str());
+    let binary_file_layout = binary_layout.as_str().parse::<BinaryFileLayout>().unwrap();
 
     let request = VMExecutionRequestMsg {
-        configuration: VMConfiguration::new(vm_target, binary_layout, *suit_storage_slot as usize)
+        configuration: VMConfiguration::new(vm_target, binary_file_layout, *suit_storage_slot as usize)
             .encode(),
         available_helpers: encode(helper_indices),
     };
