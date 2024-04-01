@@ -3,7 +3,7 @@ use compile::handle_compile;
 use deploy::handle_deploy;
 use execute::handle_execute;
 use pull::handle_pull;
-use relocate::handle_relocate;
+use postprocessing::handle_relocate;
 use sign::handle_sign;
 
 mod args;
@@ -11,7 +11,7 @@ mod compile;
 mod deploy;
 mod execute;
 mod pull;
-mod relocate;
+mod postprocessing;
 mod sign;
 
 extern crate clap;

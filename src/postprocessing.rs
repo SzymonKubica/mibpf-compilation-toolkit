@@ -1,4 +1,37 @@
+use internal_representation::BinaryFileLayout;
+
 use crate::args::Action;
+// This module is responsible for applying different post-processing steps
+// to the input ELF file to transform it into a corresponding binary layout
+// that the VM expects to when loading the program.
+
+pub fn apply_postprocessing(source_object_file: &str, binary_layout: BinaryFileLayout) -> Result<(), String> {
+    if binary_file_layout != BinaryFileLayout::FemtoContainersHeader {
+        // In this case we need to produce the binary ourselves and place it in
+        // the coaproot directory. This is because the binary produced by RIOT
+        // is not suitable for the specified binary layout.
+        // We need to place the binary in the coaproot directory so that the
+        // signing script can find it.
+
+        match binary_file_layout {
+            BinaryFileLayout::OnlyTextSection => {
+                let bytes = extract_text_section(bpf_source_file, out_dir);
+                write_binary(&bytes, "program.bin");
+            }
+            BinaryFileLayout::FunctionRelocationMetadata => {
+                let bytes = get_relocated_binary(bpf_source_file, out_dir);
+                write_binary(&bytes, "program.bin");
+            }
+            BinaryFileLayout::RawObjectFile => {
+                let object_file = get_object_file_name(bpf_source_file, out_dir);
+                let _ = strip_binary(&object_file, Some(&"program.bin".to_string()));
+            }
+            BinaryFileLayout::FemtoContainersHeader => unreachable!(),
+        }
+    }
+    Ok(())
+}
+
 /// Relocate subcommand is responsible for performing the post-processing of the
 /// compiled eBPF bytecode before it can be loaded onto the target device. It
 /// handles function relocations and read only data relocations.

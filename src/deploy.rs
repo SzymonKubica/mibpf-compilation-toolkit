@@ -44,29 +44,6 @@ pub async fn handle_deploy(args: &crate::args::Action) -> Result<(), String> {
     let binary_file_layout = binary_layout.as_str().parse::<BinaryFileLayout>().unwrap();
 
     debug!("Generating a binary with layout: {:?}", binary_file_layout);
-    if binary_file_layout != BinaryFileLayout::FemtoContainersHeader {
-        // In this case we need to produce the binary ourselves and place it in
-        // the coaproot directory. This is because the binary produced by RIOT
-        // is not suitable for the specified binary layout.
-        // We need to place the binary in the coaproot directory so that the
-        // signing script can find it.
-
-        match binary_file_layout {
-            BinaryFileLayout::OnlyTextSection => {
-                let bytes = extract_text_section(bpf_source_file, out_dir);
-                write_binary(&bytes, "program.bin");
-            }
-            BinaryFileLayout::FunctionRelocationMetadata => {
-                let bytes = get_relocated_binary(bpf_source_file, out_dir);
-                write_binary(&bytes, "program.bin");
-            }
-            BinaryFileLayout::RawObjectFile => {
-                let object_file = get_object_file_name(bpf_source_file, out_dir);
-                let _ = strip_binary(&object_file, Some(&"program.bin".to_string()));
-            }
-            BinaryFileLayout::FemtoContainersHeader => unreachable!(),
-        }
-    }
 
     handle_sign(&Action::Sign {
         host_network_interface: host_network_interface.to_string(),
