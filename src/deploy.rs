@@ -1,14 +1,10 @@
-use std::path::PathBuf;
-
 use log::debug;
-
-use bytecode_patching::assemble_femtocontainer_binary;
 
 use crate::{
     args::Action,
     compile::handle_compile,
     internal_representation::BinaryFileLayout,
-    postprocessing::{apply_postprocessing, read_bytes_from_file},
+    postprocessing::apply_postprocessing,
     pull::handle_pull,
     sign::handle_sign,
 };
@@ -68,29 +64,6 @@ pub async fn handle_deploy(args: &crate::args::Action) -> Result<(), String> {
     })
     .await?;
     Ok(())
-}
-
-fn extract_text_section(bpf_source_file: &str, out_dir: &str) -> Vec<u8> {
-    let object_file = get_object_file_name(bpf_source_file, out_dir);
-    let path = PathBuf::from(object_file);
-    let file = match elf::File::open_path(&path) {
-        Ok(f) => f,
-        Err(e) => panic!("Error: {:?}", e),
-    };
-
-    let text_scn = match file.get_section(".text") {
-        Some(s) => s,
-        None => panic!("Failed to look up elf section"),
-    };
-
-    text_scn.data.clone()
-}
-
-fn get_relocated_binary(bpf_source_file: &str, out_dir: &str) -> Vec<u8> {
-    debug!("Generating the binary using the custom relocation script.");
-    let object_file = get_object_file_name(bpf_source_file, out_dir);
-    let bytes = read_bytes_from_file(&object_file);
-    assemble_femtocontainer_binary(&bytes).unwrap()
 }
 
 pub fn get_object_file_name(bpf_source_file: &str, out_dir: &str) -> String {

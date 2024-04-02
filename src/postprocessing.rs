@@ -49,13 +49,15 @@ pub fn apply_postprocessing(
         }
     };
 
-    write_binary(&processed_program_bytes, output_file_name);
-    Ok(())
+    write_binary(&processed_program_bytes, output_file_name)
 }
 
-fn write_binary(bytes: &[u8], destination: &str) {
-    let mut f = File::create(destination).unwrap();
-    f.write_all(bytes).unwrap();
+fn write_binary(bytes: &[u8], destination: &str) -> Result<(), String> {
+    let Ok(mut f) = File::create(destination) else {
+        return Err(format!("Failed to create the file: {}", destination));
+    };
+    f.write_all(bytes)
+        .map_err(|e| format!("Error when writing to a file: {}", e))
 }
 
 /// Relocate subcommand is responsible for performing the post-processing of the
