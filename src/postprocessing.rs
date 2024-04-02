@@ -4,7 +4,10 @@ use std::{
     process::Command,
 };
 
-use bytecode_patching::{extract_section, print_program_bytes, relocate_in_place, assemble_femtocontainer_binary};
+use bytecode_patching::{
+    assemble_binary, assemble_femtocontainer_binary, debug_print_program_bytes, extract_section,
+    resolve_relocations,
+};
 use internal_representation::BinaryFileLayout;
 use log::{debug, log_enabled, Level};
 
@@ -19,37 +22,34 @@ pub fn apply_postprocessing(
     binary_layout: BinaryFileLayout,
     output_file_name: &str,
 ) -> Result<(), String> {
-    // In this case we need to produce the binary ourselves and place it in
-    // the coaproot directory. This is because the binary produced by RIOT
-    // is not suitable for the specified binary layout.
-    // We need to place the binary in the coaproot directory so that the
-    // signing script can find it.
+    // When we want to perform relocations on the actual target device, we
+    // only need to strip off the redundant information from the object file.
+    if binary_layout == BinaryFileLayout::RawObjectFile {
+        return strip_binary(&source_object_file, Some(&output_file_name.to_string()));
+    }
 
-    match binary_layout {
+    let processed_program_bytes = match binary_layout {
         BinaryFileLayout::OnlyTextSection => {
             let program_bytes = read_bytes_from_file(source_object_file);
             let text_section_bytes = extract_section(".text", &program_bytes)?;
-            write_binary(&text_section_bytes, "program.bin");
+            Vec::from(text_section_bytes)
         }
         BinaryFileLayout::FunctionRelocationMetadata => {
-            unimplemented!();
-            //let bytes = get_relocated_binary(bpf_source_file, out_dir);
-            //write_binary(&bytes, "program.bin");
-        }
-        BinaryFileLayout::RawObjectFile => {
-            unimplemented!();
-            //let object_file = get_object_file_name(bpf_source_file, out_dir);
-            //let _ = strip_binary(&object_file, Some(&"program.bin".to_string()));
+            let program_bytes = read_bytes_from_file(source_object_file);
+            let relocated_program = assemble_binary(&program_bytes)?;
+            relocated_program
         }
         BinaryFileLayout::FemtoContainersHeader => {
             let program_bytes = read_bytes_from_file(source_object_file);
             let relocated_program = assemble_femtocontainer_binary(&program_bytes)?;
-            write_binary(&relocated_program, "program.bin");
-            // we don't apply post-processing here as the RIOT build system already
-            // produces the correct binary which has the custom FemtoContainers
-            // layout.
+            relocated_program
         }
-    }
+        BinaryFileLayout::RawObjectFile => {
+            unreachable!()
+        }
+    };
+
+    write_binary(&processed_program_bytes, output_file_name);
     Ok(())
 }
 
@@ -75,10 +75,10 @@ pub fn handle_relocate(args: &crate::args::Action) -> Result<(), String> {
         let _ = strip_binary(source_object_file, binary_file.as_ref());
         println!("Relocating the original binary");
         let mut buffer = read_bytes_from_file(source_object_file);
-        let _ = relocate_in_place(&mut buffer);
+        let _ = resolve_relocations(&mut buffer);
         println!("Now relocating the stripped binary");
         let mut buffer = read_bytes_from_file(binary_file.as_ref().unwrap());
-        return relocate_in_place(&mut buffer);
+        return resolve_relocations(&mut buffer);
     }
 
     let elf_file = read_bytes_from_file(source_object_file);
@@ -94,7 +94,7 @@ pub fn handle_relocate(args: &crate::args::Action) -> Result<(), String> {
     let mut f = File::create(file_name).unwrap();
     if log_enabled!(Level::Debug) {
         debug!("Generated binary:");
-        print_program_bytes(&relocated_file);
+        debug_print_program_bytes(&relocated_file);
     }
     f.write_all(&relocated_file).unwrap();
     Ok(())
@@ -136,15 +136,4 @@ pub fn strip_binary(source_object_file: &str, binary_file: Option<&String>) -> R
         Ok(_) => Ok(()),
         Err(e) => Err(format!("Failed to strip the binary: {}", e)),
     }
-}
-pub fn get_object_file_name(bpf_source_file: &str, out_dir: &str) -> String {
-    let base_name = bpf_source_file
-        .split("/")
-        .last()
-        .unwrap()
-        .split(".")
-        .nth(0)
-        .expect("You need to provide the .c source file");
-
-    format!("{}/{}.o", out_dir, base_name)
 }

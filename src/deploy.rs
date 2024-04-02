@@ -8,7 +8,7 @@ use crate::{
     args::Action,
     compile::handle_compile,
     internal_representation::BinaryFileLayout,
-    postprocessing::{apply_postprocessing, get_object_file_name, read_bytes_from_file},
+    postprocessing::{apply_postprocessing, read_bytes_from_file},
     pull::handle_pull,
     sign::handle_sign,
 };
@@ -48,7 +48,8 @@ pub async fn handle_deploy(args: &crate::args::Action) -> Result<(), String> {
     let binary_file_layout = binary_layout.as_str().parse::<BinaryFileLayout>().unwrap();
 
     debug!("Generating a binary with layout: {:?}", binary_file_layout);
-    apply_postprocessing(bpf_source_file, binary_file_layout, "program.bin");
+    let object_file_name = get_object_file_name(bpf_source_file, out_dir);
+    let _ = apply_postprocessing(&object_file_name, binary_file_layout, "program.bin")?;
 
     handle_sign(&Action::Sign {
         host_network_interface: host_network_interface.to_string(),
@@ -90,4 +91,16 @@ fn get_relocated_binary(bpf_source_file: &str, out_dir: &str) -> Vec<u8> {
     let object_file = get_object_file_name(bpf_source_file, out_dir);
     let bytes = read_bytes_from_file(&object_file);
     assemble_femtocontainer_binary(&bytes).unwrap()
+}
+
+pub fn get_object_file_name(bpf_source_file: &str, out_dir: &str) -> String {
+    let base_name = bpf_source_file
+        .split("/")
+        .last()
+        .unwrap()
+        .split(".")
+        .nth(0)
+        .expect("You need to provide the .c source file");
+
+    format!("{}/{}.o", out_dir, base_name)
 }
