@@ -1,12 +1,16 @@
-use std::{fs::File, io::Write, path::PathBuf};
+use std::path::PathBuf;
 
 use log::debug;
 
-use bytecode_patching::{get_relocated_bytes, strip_binary};
+use bytecode_patching::assemble_femtocontainer_binary;
 
 use crate::{
-    args::Action, compile::handle_compile, internal_representation::BinaryFileLayout,
-    pull::handle_pull, sign::handle_sign,
+    args::Action,
+    compile::handle_compile,
+    internal_representation::BinaryFileLayout,
+    postprocessing::{apply_postprocessing, get_object_file_name, read_bytes_from_file},
+    pull::handle_pull,
+    sign::handle_sign,
 };
 
 pub async fn handle_deploy(args: &crate::args::Action) -> Result<(), String> {
@@ -44,6 +48,7 @@ pub async fn handle_deploy(args: &crate::args::Action) -> Result<(), String> {
     let binary_file_layout = binary_layout.as_str().parse::<BinaryFileLayout>().unwrap();
 
     debug!("Generating a binary with layout: {:?}", binary_file_layout);
+    apply_postprocessing(bpf_source_file, binary_file_layout, "program.bin");
 
     handle_sign(&Action::Sign {
         host_network_interface: host_network_interface.to_string(),
@@ -83,22 +88,6 @@ fn extract_text_section(bpf_source_file: &str, out_dir: &str) -> Vec<u8> {
 fn get_relocated_binary(bpf_source_file: &str, out_dir: &str) -> Vec<u8> {
     debug!("Generating the binary using the custom relocation script.");
     let object_file = get_object_file_name(bpf_source_file, out_dir);
-    get_relocated_bytes(&object_file).unwrap()
-}
-
-fn get_object_file_name(bpf_source_file: &str, out_dir: &str) -> String {
-    let base_name = bpf_source_file
-        .split("/")
-        .last()
-        .unwrap()
-        .split(".")
-        .nth(0)
-        .expect("You need to provide the .c source file");
-
-    format!("{}/{}.o", out_dir, base_name)
-}
-
-fn write_binary(bytes: &[u8], destination: &str) {
-    let mut f = File::create(destination).unwrap();
-    f.write_all(bytes).unwrap();
+    let bytes = read_bytes_from_file(&object_file);
+    assemble_femtocontainer_binary(&bytes).unwrap()
 }
