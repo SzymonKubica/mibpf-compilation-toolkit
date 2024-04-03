@@ -5,18 +5,14 @@ use std::{
 };
 
 use bytecode_patching::{
-    assemble_binary, assemble_femtocontainer_binary, debug_print_program_bytes, extract_section,
-    resolve_relocations,
+    assemble_binary, assemble_femtocontainer_binary, extract_section,
 };
 use internal_representation::BinaryFileLayout;
-use log::{debug, log_enabled, Level};
 
-use crate::args::Action;
 
 // This module is responsible for applying different post-processing steps
 // to the input ELF file to transform it into a corresponding binary layout
 // that the VM expects to when loading the program.
-
 pub fn apply_postprocessing(
     source_object_file: &str,
     binary_layout: BinaryFileLayout,
@@ -58,48 +54,6 @@ fn write_binary(bytes: &[u8], destination: &str) -> Result<(), String> {
     };
     f.write_all(bytes)
         .map_err(|e| format!("Error when writing to a file: {}", e))
-}
-
-/// Relocate subcommand is responsible for performing the post-processing of the
-/// compiled eBPF bytecode before it can be loaded onto the target device. It
-/// handles function relocations and read only data relocations.
-pub fn handle_relocate(args: &crate::args::Action) -> Result<(), String> {
-    let Action::Relocate {
-        source_object_file,
-        binary_file,
-        strip_debug,
-    } = args
-    else {
-        return Err(format!("Invalid subcommand args: {:?}", args));
-    };
-
-    if *strip_debug {
-        let _ = strip_binary(source_object_file, binary_file.as_ref());
-        println!("Relocating the original binary");
-        let mut buffer = read_bytes_from_file(source_object_file);
-        let _ = resolve_relocations(&mut buffer);
-        println!("Now relocating the stripped binary");
-        let mut buffer = read_bytes_from_file(binary_file.as_ref().unwrap());
-        return resolve_relocations(&mut buffer);
-    }
-
-    let elf_file = read_bytes_from_file(source_object_file);
-
-    let relocated_file = bytecode_patching::assemble_femtocontainer_binary(&elf_file)?;
-
-    let file_name = if let Some(binary_file) = binary_file {
-        binary_file.clone()
-    } else {
-        "a.bin".to_string()
-    };
-
-    let mut f = File::create(file_name).unwrap();
-    if log_enabled!(Level::Debug) {
-        debug!("Generated binary:");
-        debug_print_program_bytes(&relocated_file);
-    }
-    f.write_all(&relocated_file).unwrap();
-    Ok(())
 }
 
 pub fn read_bytes_from_file(source_object_file: &str) -> Vec<u8> {

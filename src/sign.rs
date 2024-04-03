@@ -2,7 +2,7 @@ use std::process::Command;
 
 use crate::args::Action;
 
-pub fn handle_sign(
+pub fn sign(
     host_network_interface: &str,
     board_name: &str,
     coaproot_dir: &str,

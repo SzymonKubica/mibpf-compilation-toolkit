@@ -7,7 +7,7 @@ use crate::internal_representation::{
     BinaryFileLayout, TargetVM, VMConfiguration, VMExecutionRequestMsg,
 };
 
-pub async fn handle_execute(
+pub async fn execute(
     riot_ipv6_addr: &str,
     target: TargetVM,
     binary_layout: BinaryFileLayout,

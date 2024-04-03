@@ -17,7 +17,24 @@ pub enum Action {
         #[arg(long, default_value_t = String::from("./out"))]
         out_dir: String,
     },
-
+    /// Modifies the ELF file resulting from compilation. It can be used to
+    /// simply extract the `.text` section, perform custom ahead-of-time bytecode
+    /// patchint to eliminate the need for relocation resolution at load time or
+    /// strip off redundant debug information allowing for sending the ELF file
+    /// directly to the device so that the relocations can be performed there.
+    Postprocessing {
+        /// Name of the file containing the eBPF source code.
+        #[arg(long)]
+        source_object_file: String,
+        /// Name of the binary file to be generated
+        #[arg(long)]
+        binary_file: Option<String>,
+        /// Layout of the binary file that the VM should expect.
+        /// Available options: OnlyTextSection, FemtoContainersHeader, FunctionRelocationMetadata, RawObjectFile,
+        /// Determines which kind of postprocessing is applied to the ELF file.
+        #[arg(long, default_value_t = String::from("FunctionRelocationMetadata"))]
+        binary_layout: String,
+    },
     /// Sign the eBPF binary for SUIT update protocol. Generates  the manifest,
     /// signs it and places all files in the CoAP fileserver root directory
     Sign {
@@ -154,19 +171,6 @@ pub enum Action {
         /// Controlls which indices of helpers are made available to the VM
         #[clap(short, long, value_parser, num_args = 1.., value_delimiter = ' ')]
         helper_indices: Vec<u8>,
-    },
-    // Performs bytecode-patching similar to the Femto-Containers gen_rbf script.
-    Relocate {
-        /// Name of the file containing the eBPF source code.
-        #[arg(long)]
-        source_object_file: String,
-        /// Name of the binary file to be generated
-        #[arg(long)]
-        binary_file: Option<String>,
-        /// If set, the relocations aren't performed and the relocation step
-        /// just strips off the debug information and the .BTF, .BTF.ext sections
-        #[arg(long, default_value_t = false)]
-        strip_debug: bool,
     },
 }
 

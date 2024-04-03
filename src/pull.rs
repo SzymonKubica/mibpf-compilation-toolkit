@@ -2,9 +2,9 @@ use std::process::Command;
 
 use log::debug;
 
-use crate::{args::Action, internal_representation::SuitPullRequest};
+use crate::internal_representation::SuitPullRequest;
 
-pub async fn handle_pull(
+pub async fn pull(
     riot_ipv6_addr: &str,
     host_ipv6_addr: &str,
     suit_manifest: &str,
