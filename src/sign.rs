@@ -18,8 +18,9 @@ pub fn handle_sign(args: &crate::args::Action) -> Result<(), String> {
 
     let file_name = binary_name.split("/").last().unwrap();
 
+    // TODO: use a proper command here to make it location independent
     let Ok(_) = Command::new("bash")
-        .arg("./scripts/sign-binary.sh")
+        .arg("../scripts/sign-binary.sh")
         .arg(host_network_interface)
         .arg(board_name)
         .arg(coaproot_dir)
