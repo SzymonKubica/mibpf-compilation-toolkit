@@ -1,13 +1,8 @@
-use args::Action;
-use clap::Parser;
-use compile::handle_compile;
-use deploy::handle_deploy;
-use execute::handle_execute;
-use postprocessing::handle_relocate;
-use pull::handle_pull;
-use sign::handle_sign;
-
-use crate::postprocessing::apply_postprocessing;
+extern crate clap;
+extern crate coap;
+extern crate env_logger;
+extern crate internal_representation;
+extern crate rbpf;
 
 mod args;
 mod compile;
@@ -17,11 +12,17 @@ mod postprocessing;
 mod pull;
 mod sign;
 
-extern crate clap;
-extern crate coap;
-extern crate env_logger;
-extern crate internal_representation;
-extern crate rbpf;
+use std::str::FromStr;
+
+use args::Action;
+use clap::Parser;
+use compile::compile;
+use deploy::deploy;
+use execute::execute;
+use internal_representation::{BinaryFileLayout, ExecutionModel, TargetVM};
+use postprocessing::apply_postprocessing;
+use pull::pull;
+use sign::sign;
 
 #[tokio::main]
 async fn main() {
@@ -30,10 +31,10 @@ async fn main() {
 
     let result = match &args.command {
         Action::Compile { .. } => handle_compile(&args.command),
+        Action::Postprocessing { .. } => handle_postprocessing(&args.command),
         Action::Sign { .. } => handle_sign(&args.command),
-        Action::Pull { .. } => handl_pull(&args.command),
-        Action::Execute { .. } => hande_execute(&args.command),
-        Action::Relocate { .. } => handle_relocate(&args.command),
+        Action::Pull { .. } => handle_pull(&args.command).await,
+        Action::Execute { .. } => handle_execute(&args.command).await,
         Action::Deploy { .. } => handle_deploy(&args.command).await,
     };
 
@@ -53,7 +54,7 @@ fn handle_compile(args: &Action) -> Result<(), String> {
         return Err(format!("Invalid subcommand args: {:?}", args));
     };
 
-    compile::compile(bpf_source_file, binary_file, out_dir)
+    compile(bpf_source_file, binary_file.as_deref(), out_dir)
 }
 
 fn handle_sign(args: &Action) -> Result<(), String> {
@@ -68,16 +69,16 @@ fn handle_sign(args: &Action) -> Result<(), String> {
         return Err(format!("Invalid subcommand args: {:?}", args));
     };
 
-    sign::sign(
+    sign(
         host_network_interface,
         board_name,
         coaproot_dir,
         binary_name,
-        suit_storage_slot as u32,
+        *suit_storage_slot as usize,
     )
 }
 
-fn handle_pull(args: &Action) -> Result<(), String> {
+async fn handle_pull(args: &Action) -> Result<(), String> {
     let Action::Pull {
         riot_ipv6_addr,
         host_ipv6_addr,
@@ -89,7 +90,7 @@ fn handle_pull(args: &Action) -> Result<(), String> {
         return Err(format!("Invalid subcommand args: {:?}", args));
     };
 
-    pull::pull(
+    pull(
         riot_ipv6_addr,
         host_ipv6_addr,
         suit_manifest,
@@ -98,7 +99,7 @@ fn handle_pull(args: &Action) -> Result<(), String> {
     )
     .await
 }
-fn handle_execute(args: &Action) -> Result<(), String> {
+async fn handle_execute(args: &Action) -> Result<(), String> {
     let Action::Execute {
         riot_ipv6_addr,
         target,
@@ -112,15 +113,15 @@ fn handle_execute(args: &Action) -> Result<(), String> {
         return Err(format!("Invalid subcommand args: {:?}", args));
     };
 
-    let vm_target = TargetVM::from_str(target.as_str())?;
+    let target_vm = TargetVM::from_str(target.as_str())?;
     let execution_model = ExecutionModel::from_str(execution_model)?;
     let binary_file_layout = binary_layout.as_str().parse::<BinaryFileLayout>()?;
 
-    execute::execute(
+    execute(
         riot_ipv6_addr,
-        target,
-        binary_layout,
-        suit_storage_slot,
+        target_vm,
+        binary_file_layout,
+        *suit_storage_slot as usize,
         host_network_interface,
         execution_model,
         helper_indices,
@@ -128,7 +129,7 @@ fn handle_execute(args: &Action) -> Result<(), String> {
     .await
 }
 
-pub fn handle_relocate(args: &Action) -> Result<(), String> {
+fn handle_postprocessing(args: &Action) -> Result<(), String> {
     let Action::Postprocessing {
         source_object_file,
         binary_file,
@@ -149,7 +150,7 @@ pub fn handle_relocate(args: &Action) -> Result<(), String> {
     apply_postprocessing(source_object_file, binary_layout, file_name)
 }
 
-pub fn handle_deploy(args: &Action) -> Result<(), String> {
+async fn handle_deploy(args: &Action) -> Result<(), String> {
     let Action::Deploy {
         bpf_source_file,
         out_dir,
@@ -168,16 +169,17 @@ pub fn handle_deploy(args: &Action) -> Result<(), String> {
 
     let binary_layout = binary_layout.as_str().parse::<BinaryFileLayout>()?;
 
-    deploy::deploy(
+    deploy(
         bpf_source_file,
         out_dir,
         host_network_interface,
         board_name,
         coaproot_dir,
-        suit_storage_slot,
+        *suit_storage_slot as usize,
         riot_ipv6_addr,
         host_ipv6_addr,
         binary_layout,
         riot_network_interface,
     )
+    .await
 }
