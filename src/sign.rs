@@ -2,18 +2,13 @@ use std::process::Command;
 
 use crate::args::Action;
 
-pub fn handle_sign(args: &crate::args::Action) -> Result<(), String> {
-    let Action::Sign {
-        host_network_interface,
-        board_name,
-        coaproot_dir,
-        binary_name,
-        suit_storage_slot,
-    } = args
-    else {
-        return Err(format!("Invalid subcommand args: {:?}", args));
-    };
-
+pub fn handle_sign(
+    host_network_interface: &str,
+    board_name: &str,
+    coaproot_dir: &str,
+    binary_name: &str,
+    suit_storage_slot: usize,
+) -> Result<(), String> {
     place_binary_in_coap_root(coaproot_dir, binary_name);
 
     let file_name = binary_name.split("/").last().unwrap();

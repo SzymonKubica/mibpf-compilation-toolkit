@@ -145,9 +145,11 @@ pub enum Action {
         #[arg(long, default_value_t = String::from("wlan0"))]
         host_network_interface: String,
 
-        /// Whether the executing program should get access to the CoAP packet
-        #[arg(long, default_value_t = false)]
-        execute_on_coap: bool,
+        /// Which execution model should be used by the vm, avaliable options: ShortLived,
+        /// WithAccessToCoapPacket, LongRunning, see [`internal_representation::ExecutionModel`]
+        /// for more details.
+        #[arg(long, default_value_t = String::from("ShortLived"))]
+        execution_model: String,
 
         /// Controlls which indices of helpers are made available to the VM
         #[clap(short, long, value_parser, num_args = 1.., value_delimiter = ' ')]

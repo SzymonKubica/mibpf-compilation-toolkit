@@ -1,41 +1,41 @@
 use std::{process::Command, str::FromStr};
 
+use internal_representation::ExecutionModel;
 use log::debug;
 
-use crate::{
-    args::Action,
-    internal_representation::{BinaryFileLayout, TargetVM, VMConfiguration, VMExecutionRequestMsg},
+use crate::internal_representation::{
+    BinaryFileLayout, TargetVM, VMConfiguration, VMExecutionRequestMsg,
 };
 
-pub async fn handle_execute(args: &crate::args::Action) -> Result<(), String> {
-    let Action::Execute {
-        riot_ipv6_addr: riot_ipv6,
-        target,
-        binary_layout,
-        suit_storage_slot,
-        host_network_interface: host_net_if,
-        execute_on_coap,
-        helper_indices,
-    } = args
-    else {
-        return Err(format!("Invalid subcommand args: {:?}", args));
-    };
-    let Ok(vm_target) = TargetVM::from_str(target.as_str()) else {
-        return Err(format!("Invalid subcommand args: {:?}", args));
-    };
-
-    let binary_file_layout = binary_layout.as_str().parse::<BinaryFileLayout>().unwrap();
-
+pub async fn handle_execute(
+    riot_ipv6_addr: &str,
+    target: TargetVM,
+    binary_layout: BinaryFileLayout,
+    suit_storage_slot: usize,
+    host_network_interface: &str,
+    execution_model: ExecutionModel,
+    helper_indices: &[u8],
+) -> Result<(), String> {
     let request = VMExecutionRequestMsg {
-        configuration: VMConfiguration::new(vm_target, binary_file_layout, *suit_storage_slot as usize)
-            .encode(),
+        configuration: VMConfiguration::new(target, binary_layout, suit_storage_slot).encode(),
         available_helpers: encode(helper_indices),
     };
 
-    let url = if !*execute_on_coap {
-        format!("coap://[{}%{}]/vm/spawn", riot_ipv6, host_net_if)
-    } else {
-        format!("coap://[{}%{}]/vm/exec/coap-pkt", riot_ipv6, host_net_if,)
+    let url = match execution_model {
+        ExecutionModel::ShortLived => format!(
+            "coap://[{}%{}]/vm/exec",
+            riot_ipv6_addr, host_network_interface
+        ),
+        ExecutionModel::WithAccessToCoapPacket => {
+            format!(
+                "coap://[{}%{}]/vm/exec/coap-pkt",
+                riot_ipv6_addr, host_network_interface
+            )
+        }
+        ExecutionModel::LongRunning => format!(
+            "coap://[{}%{}]/vm/spawn",
+            riot_ipv6_addr, host_network_interface
+        ),
     };
 
     debug!("Sending a request to the url: {}", url);

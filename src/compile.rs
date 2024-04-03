@@ -3,17 +3,11 @@ use std::process::ExitStatus;
 use std::{fs, io};
 use std::{path::PathBuf, process::Command};
 
-use crate::args::Action;
-
-pub fn handle_compile(args: &Action) -> Result<(), String> {
-    let Action::Compile {
-        bpf_source_file,
-        binary_file,
-        out_dir,
-    } = args
-    else {
-        return Err(format!("Invalid subcommand args: {:?}", args));
-    };
+pub fn handle_compile(
+    bpf_source_file: &str,
+    output_binary_file: Option<&str>,
+    out_dir: &str,
+) -> Result<(), String> {
     let message = "Compiling for Femto-Containers requires header files that \
                    are included in RIOT. Because of this, the compilation \
                    process needs to use the Makefile setup used by RIOT. \
@@ -37,7 +31,7 @@ pub fn handle_compile(args: &Action) -> Result<(), String> {
 
     // Users can specify an optional name of the target output binary. If it is
     // set we rename the binary created in the previous step
-    if let Some(file_name) = binary_file {
+    if let Some(file_name) = output_binary_file {
         let Ok(_) = rename_generated_binary(
             source_path.to_str().unwrap(),
             source_directory.to_str().unwrap(),
