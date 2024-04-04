@@ -1,5 +1,3 @@
-#include <stdint.h>
-#include <string.h>
 #include "helpers.h"
 
 // This string should go into the .rodata section

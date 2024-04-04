@@ -1,3 +1,5 @@
+use std::thread;
+
 use mibpf_tools::{self, execute};
 
 use internal_representation::{BinaryFileLayout, ExecutionModel, TargetVM};
@@ -9,6 +11,7 @@ use serde::Deserialize;
 // desktop machine.
 //
 // TODO: write up setup instructions
+// TODO: allow for specifying environment externally
 struct Environment<'a> {
     pub mibpf_root_dir: &'a str,
     pub coap_root_dir: &'a str,
@@ -35,9 +38,10 @@ const TEST_SOURCES_DIR: &'static str = "tests/test-sources";
 /// the environment configuration.
 async fn deploy_test_script(file_name: &str, layout: BinaryFileLayout) -> Result<(), String> {
     let file_path = format!("{}/{}", TEST_SOURCES_DIR, file_name);
+    let out_dir = format!("{}/out", TEST_SOURCES_DIR);
     deploy(
         &file_path,
-        TEST_SOURCES_DIR,
+        &out_dir,
         layout,
         ENV.coap_root_dir,
         0,
@@ -84,16 +88,30 @@ async fn execute_deployed_script(
     Ok(response.result)
 }
 
-#[tokio::test]
-async fn test_basic() {
+async fn test_raw_elf_file(test_program: &str, expected_return: i32) {
     let layout = BinaryFileLayout::RawObjectFile;
-    let result = deploy_test_script("printf.c", layout).await;
+
+    // We first deploy the program on the tested microcontroller
+    let result = deploy_test_script(test_program, layout).await;
     assert!(result.is_ok());
+
+    // Then we request execution and check that the return value is what we
+    // expected
     let execution_result = execute_deployed_script(0, layout).await;
     if let Err(string) = &execution_result {
         println!("{}", string);
     }
     assert!(execution_result.is_ok());
     let return_value = execution_result.unwrap();
-    assert!(return_value == 0);
+    assert!(return_value == expected_return);
+}
+
+#[tokio::test]
+async fn printf() {
+    test_raw_elf_file("printf.c", 0).await;
+}
+
+#[tokio::test]
+async fn data_relocations() {
+    test_raw_elf_file("data_relocations.c", 123).await;
 }
