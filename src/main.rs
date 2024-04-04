@@ -75,6 +75,7 @@ fn handle_sign(args: &Action) -> Result<(), String> {
         coaproot_dir,
         binary_name,
         *suit_storage_slot as usize,
+        None,
     )
 }
 
@@ -172,14 +173,15 @@ async fn handle_deploy(args: &Action) -> Result<(), String> {
     deploy(
         bpf_source_file,
         out_dir,
-        host_network_interface,
-        board_name,
+        binary_layout,
         coaproot_dir,
         *suit_storage_slot as usize,
-        riot_ipv6_addr,
-        host_ipv6_addr,
-        binary_layout,
         riot_network_interface,
+        riot_ipv6_addr,
+        host_network_interface,
+        host_ipv6_addr,
+        board_name,
+        None,
     )
     .await
 }

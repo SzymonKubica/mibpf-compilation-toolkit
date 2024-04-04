@@ -2,7 +2,7 @@ use clap::{Parser, Subcommand};
 
 #[derive(Debug, Subcommand, PartialEq, Eq)]
 pub enum Action {
-    /// Compile the eBPF program
+    /// Compile the eBPF program.
     Compile {
         /// Name of the file containing the eBPF source code.
         #[arg(long)]
@@ -17,11 +17,7 @@ pub enum Action {
         #[arg(long, default_value_t = String::from("./out"))]
         out_dir: String,
     },
-    /// Modifies the ELF file resulting from compilation. It can be used to
-    /// simply extract the `.text` section, perform custom ahead-of-time bytecode
-    /// patchint to eliminate the need for relocation resolution at load time or
-    /// strip off redundant debug information allowing for sending the ELF file
-    /// directly to the device so that the relocations can be performed there.
+    /// Modifies the ELF file resulting from compilation to make it compatible with the VM.
     Postprocessing {
         /// Name of the file containing the eBPF source code.
         #[arg(long)]
@@ -36,7 +32,7 @@ pub enum Action {
         binary_layout: String,
     },
     /// Sign the eBPF binary for SUIT update protocol. Generates  the manifest,
-    /// signs it and places all files in the CoAP fileserver root directory
+    /// signs it and places all files in the CoAP fileserver root directory.
     Sign {
         /// Network interface of the machine hosting the CoAP fileserver.
         /// Used to find the IPv6 address of the fileserver.
