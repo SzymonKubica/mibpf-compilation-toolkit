@@ -20,6 +20,7 @@ use compile::compile;
 use deploy::deploy;
 use execute::execute;
 use internal_representation::{BinaryFileLayout, ExecutionModel, TargetVM};
+use log::info;
 use postprocessing::apply_postprocessing;
 use pull::pull;
 use sign::sign;
@@ -118,7 +119,7 @@ async fn handle_execute(args: &Action) -> Result<(), String> {
     let execution_model = ExecutionModel::from_str(execution_model)?;
     let binary_file_layout = binary_layout.as_str().parse::<BinaryFileLayout>()?;
 
-    execute(
+    let response = execute(
         riot_ipv6_addr,
         target_vm,
         binary_file_layout,
@@ -127,7 +128,11 @@ async fn handle_execute(args: &Action) -> Result<(), String> {
         execution_model,
         helper_indices,
     )
-    .await
+    .await?;
+
+    println!("Response received: \n{}", response);
+
+    Ok(())
 }
 
 fn handle_postprocessing(args: &Action) -> Result<(), String> {

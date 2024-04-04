@@ -2,6 +2,7 @@ use mibpf_tools::{self, execute};
 
 use internal_representation::{BinaryFileLayout, ExecutionModel, TargetVM};
 use mibpf_tools::deploy;
+use serde::Deserialize;
 // This module contains end-to-end integration tests of the compile-upload-
 // execute workflow of the eBPF programs on microcontrollers. It is recommended
 // that the tests are run using a native RIOT instance running on the host
@@ -50,9 +51,12 @@ async fn deploy_test_script(file_name: &str, layout: BinaryFileLayout) -> Result
     .await
 }
 
-async fn execute_deployed_script(suit_storage_slot: usize, layout: BinaryFileLayout) -> Result<i32, String> {
+async fn execute_deployed_script(
+    suit_storage_slot: usize,
+    layout: BinaryFileLayout,
+) -> Result<i32, String> {
     let available_helpers = (0..23).into_iter().collect::<Vec<u8>>();
-    execute(
+    let response = execute(
         ENV.riot_instance_ip,
         TargetVM::Rbpf,
         layout,
@@ -62,7 +66,22 @@ async fn execute_deployed_script(suit_storage_slot: usize, layout: BinaryFileLay
         &available_helpers,
     )
     .await?;
-    Ok(0)
+
+    // Short lived executions always return responses of this form:
+    // {"execution_time": 10, "result": 0}
+    #[derive(Deserialize)]
+    struct Response {
+        // Execution time in milliseconds
+        execution_time: u32,
+        // Return value of the program
+        result: i32,
+    }
+
+    println!("Response: {}", response);
+    let response = serde_json::from_str::<Response>(&response)
+        .map_err(|e| format!("Failed to parse the json response: {}", e))?;
+
+    Ok(response.result)
 }
 
 #[tokio::test]
@@ -71,6 +90,10 @@ async fn test_basic() {
     let result = deploy_test_script("printf.c", layout).await;
     assert!(result.is_ok());
     let execution_result = execute_deployed_script(0, layout).await;
+    if let Err(string) = &execution_result {
+        println!("{}", string);
+    }
     assert!(execution_result.is_ok());
+    let return_value = execution_result.unwrap();
+    assert!(return_value == 0);
 }
-

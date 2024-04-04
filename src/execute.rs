@@ -1,4 +1,4 @@
-use std::{process::Command};
+use std::process::Command;
 
 use internal_representation::ExecutionModel;
 use log::debug;
@@ -15,7 +15,7 @@ pub async fn execute(
     host_network_interface: &str,
     execution_model: ExecutionModel,
     helper_indices: &[u8],
-) -> Result<(), String> {
+) -> Result<String, String> {
     let request = VMExecutionRequestMsg {
         configuration: VMConfiguration::new(target, binary_layout, suit_storage_slot).encode(),
         available_helpers: encode(helper_indices),
@@ -41,22 +41,26 @@ pub async fn execute(
     debug!("Sending a request to the url: {}", url);
 
     let payload = serde_json::to_string(&request).unwrap();
-    println!("{}", payload);
+    debug!("Request payload:\n{}", payload);
 
-    let Ok(_) = Command::new("aiocoap-client")
+
+    // We use the aiocoap-client here as opposed to the rust coap library because
+    // that one didn't support overriding the network interface in the ipv6 urls
+    let Ok(output) = Command::new("aiocoap-client")
         .arg("-m")
         .arg("POST")
         .arg(url.clone())
         .arg("--payload")
         .arg(&payload)
-        .spawn()
-        .expect("Failed to send the request.")
-        .wait()
+        .output()
     else {
         return Err(format!("Failed to send request payload: {}", payload));
     };
 
-    Ok(())
+    let response = String::from_utf8(output.stdout)
+        .map_err(|e| format!("Failed to parse the response: {}", e))?;
+
+    Ok(response)
 }
 
 fn encode(available_indices: &[u8]) -> [u8; 3] {

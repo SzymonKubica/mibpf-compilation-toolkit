@@ -3,6 +3,8 @@ use std::process::ExitStatus;
 use std::{fs, io};
 use std::{path::PathBuf, process::Command};
 
+use log::debug;
+
 /// The compilation process uses the RIOT build system for compiling ebpf
 /// programs. It uses the rbpf.inc.mk makefile which compiles the source
 /// files and applies the Femto-Containers gen_rbf script to them producing
@@ -23,10 +25,10 @@ pub fn compile(
                    You need to ensure that the file {file-name} \
                    you are trying to compile is located inside of a directory \
                    which contains a Makefile that points to RIOT base directory. \
-                   See bpf/femto-container directory for an example";
+                   See bpf/femto-container directory for an example.";
 
     let formatted_message = message.replace("{file-name}", bpf_source_file);
-    println!("[WARNING]\n{}", formatted_message);
+    debug!("[WARNING]\n{}", formatted_message);
 
     let source_path = PathBuf::from(bpf_source_file);
     let source_directory = source_path.parent().unwrap();
