@@ -115,3 +115,13 @@ async fn printf() {
 async fn data_relocations() {
     test_raw_elf_file("data_relocations.c", 123).await;
 }
+
+#[tokio::test]
+async fn bpf_fetch() {
+    test_raw_elf_file("bpf_fetch.c", 0).await;
+}
+
+#[tokio::test]
+async fn bpf_store() {
+    test_raw_elf_file("bpf_store.c", 1234).await;
+}

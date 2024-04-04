@@ -1,6 +1,6 @@
-use std::process::Command;
+use std::{error, process::Command};
 
-use log::debug;
+use log::{debug, error};
 
 use crate::internal_representation::SuitPullRequest;
 
@@ -44,6 +44,10 @@ pub async fn pull(
         "Response from the pull request: \n{}",
         String::from_utf8(output.stdout).unwrap()
     );
+
+    if output.stderr.len() > 0 {
+        error!("{}", String::from_utf8(output.stderr).unwrap_or_default());
+    }
 
     Ok(())
 }
