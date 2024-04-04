@@ -29,18 +29,21 @@ pub async fn pull(
 
     let req_str = serde_json::to_string(&request).unwrap();
 
-    let Ok(_) = Command::new("aiocoap-client")
+    let Ok(output) = Command::new("aiocoap-client")
         .arg("-m")
         .arg("POST")
         .arg(url.clone())
         .arg("--payload")
         .arg(&req_str)
-        .spawn()
-        .expect("Failed to send the request.")
-        .wait()
+        .output()
     else {
         return Err(format!("Failed to send the request payload: {}", req_str));
     };
+
+    debug!(
+        "Response from the pull request: \n{}",
+        String::from_utf8(output.stdout).unwrap()
+    );
 
     Ok(())
 }

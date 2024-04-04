@@ -1,5 +1,5 @@
 use std::ffi::OsStr;
-use std::process::ExitStatus;
+use std::process::{ExitStatus, Output};
 use std::{fs, io};
 use std::{path::PathBuf, process::Command};
 
@@ -36,9 +36,11 @@ pub fn compile(
 
     let source_dir_name = source_directory.to_str().unwrap();
 
-    let Ok(_) = compile_with_riot_build_system(file_name, source_dir_name) else {
+    let Ok(output) = compile_with_riot_build_system(file_name, source_dir_name) else {
         return Err("Failed to compile the eBPF bytecode.".to_string());
     };
+
+    debug!("Compilation command output: \n{:?}", output);
 
     // Users can specify an optional name of the target output binary. If it is
     // set we rename the binary created in the previous step
@@ -63,16 +65,14 @@ pub fn compile(
 fn compile_with_riot_build_system(
     source_name: &OsStr,
     source_directory: &str,
-) -> io::Result<ExitStatus> {
+) -> io::Result<Output> {
     Command::new("make")
         .env("RBPF_SOURCES", source_name)
         .arg("-C")
         .arg(source_directory)
         .arg("clean")
         .arg("all")
-        .spawn()
-        .expect("Failed to compile the eBPF bytecode.")
-        .wait()
+        .output()
 }
 
 fn rename_generated_binary(

@@ -1,5 +1,7 @@
 use std::process::Command;
 
+use log::debug;
+
 pub fn sign(
     host_network_interface: &str,
     board_name: &str,
@@ -18,8 +20,7 @@ pub fn sign(
         None => ".",
     };
 
-    // TODO: use a proper command here to make it location independent
-    let Ok(_) = Command::new("bash")
+    let Ok(output) = Command::new("bash")
         .env("RIOT_HOME", "../RIOT")
         .arg(&format!("{}/scripts/sign-binary.sh", mibpf_home))
         .arg(host_network_interface)
@@ -28,12 +29,12 @@ pub fn sign(
         // The file should have been copied to coaproot by now.
         .arg(format!("{}/{}", coaproot_dir, file_name))
         .arg(suit_storage_slot.to_string())
-        .spawn()
-        .expect("Failed to sign the binary")
-        .wait()
+        .output()
     else {
         return Err("Failed to sign the binary".to_string());
     };
+
+    debug!("sign.sh output: \n{}", String::from_utf8(output.stdout).unwrap());
 
     Ok(())
 }
