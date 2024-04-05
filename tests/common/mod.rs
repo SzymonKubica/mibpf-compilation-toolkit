@@ -48,6 +48,29 @@ pub async fn deploy_test_script(file_name: &str, layout: BinaryFileLayout) -> Re
 }
 
 /// Reads the annotation present at the top of test source files that specifies
+/// what the expected response from the program executing with access to the CoAP
+/// network packet should be.
+pub fn extract_expected_response(file_name: &str) -> String {
+    use std::fs::File;
+    use std::io::{BufRead, BufReader};
+    let file_path = format!("{}/{}", TEST_SOURCES_DIR, file_name);
+    let file = File::open(file_path).unwrap();
+    let reader = BufReader::new(file);
+    let first_line = reader.lines().next().unwrap().unwrap();
+    // The format of the first line is: // TEST_RESULT: {response}
+    let mut first_line_iter = first_line
+        .split(" ");
+
+    // We skip the first two tokens: '//' and 'TEST_RESULT' and then collect the
+    // rest in case the response contains spaces
+    first_line_iter.next();
+    first_line_iter.next();
+
+    let response = first_line_iter.collect::<Vec<&str>>().join(" ");
+    response
+}
+
+/// Reads the annotation present at the top of test source files that specifies
 /// what the expected return value of the program should be.
 pub fn extract_expected_return(file_name: &str) -> i32 {
     use std::fs::File;
@@ -65,7 +88,34 @@ pub fn extract_expected_return(file_name: &str) -> i32 {
         .unwrap()
 }
 
-pub async fn execute_deployed_script(
+/// Sends a request to the server to start executing the program located in
+/// the specified storage slot using the functionality of executing eBPF programs
+/// that have access to the incoming packet context. The response should be
+/// written into the packet buffer by the eBPF program and is returned from
+/// this function once we receive it.
+pub async fn execute_deployed_program_on_coap(
+    suit_storage_slot: usize,
+    layout: BinaryFileLayout,
+) -> Result<String, String> {
+    let available_helpers = (0..23).into_iter().collect::<Vec<u8>>();
+    let response = execute(
+        ENV.riot_instance_ip,
+        TargetVM::Rbpf,
+        layout,
+        suit_storage_slot,
+        ENV.host_net_if,
+        ExecutionModel::WithAccessToCoapPacket,
+        &available_helpers,
+    )
+    .await?;
+
+    println!("Response: {}", response);
+    // we need to remove the null terminator that we get in the response
+    let response = response.trim_matches(char::from(0));
+    Ok(response.to_string())
+}
+
+pub async fn execute_deployed_program(
     suit_storage_slot: usize,
     layout: BinaryFileLayout,
 ) -> Result<i32, String> {
