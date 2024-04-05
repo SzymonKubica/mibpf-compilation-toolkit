@@ -21,6 +21,10 @@ use internal_representation::BinaryFileLayout;
 //  - no support for pc-relative function calls (need to use inlined functions)
 //  - no support for accessing CoAP packets (because default interpreter doesn't
 //    allow for accessing those memory regions)
+//
+// Below we use special versions of the test files (*_only_text.c) where all
+// calls to `bpf_printf` were replaced with the `print` macro which explicitly
+// declares the format string and thus allows the VM to print it to the shell.
 
 #[tokio::test]
 async fn printf() {

@@ -8,7 +8,7 @@ int test_bpf_fmt_s16_dfp(void *ctx)
     int16_t val2 = -125;
     // We also test the second helper here, for integers that need not be
     // unsigned.
-    char *buffer = "     ";
+    char buffer[] = "     ";
 
     print("Buffer before formatting: %s\n", buffer);
 

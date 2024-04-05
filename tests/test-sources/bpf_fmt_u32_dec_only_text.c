@@ -8,7 +8,7 @@ int test_fmt(void *ctx)
     uint32_t val = 12345;
     // We also test the second helper here, for integers that need not be
     // unsigned.
-    char *buffer = "     ";
+    char buffer[] = "     ";
 
     print("Buffer before formatting: %s\n", buffer);
 
