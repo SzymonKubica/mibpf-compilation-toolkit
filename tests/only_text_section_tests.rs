@@ -1,6 +1,6 @@
 mod common;
 
-use common::{test_execution, test_execution_accessing_coap_pkt};
+use common::{load_env, test_execution, test_execution_accessing_coap_pkt};
 use internal_representation::BinaryFileLayout;
 
 // This module tests the VM executions with the OnlyTextSection binary file layout.
@@ -76,9 +76,11 @@ async fn gcoap_response_format() {
 ///
 /// These tests also use the original version of the rbpf VM interpreter.
 async fn test_only_text_section(test_program: &str) {
-    test_execution(test_program, BinaryFileLayout::OnlyTextSection).await;
+    let env = load_env();
+    test_execution(test_program, BinaryFileLayout::OnlyTextSection, &env).await;
 }
 
 async fn test_only_text_section_accessing_coap_pkt(test_program: &str) {
-    test_execution_accessing_coap_pkt(test_program, BinaryFileLayout::OnlyTextSection).await;
+    let env = load_env();
+    test_execution_accessing_coap_pkt(test_program, BinaryFileLayout::OnlyTextSection, &env).await;
 }

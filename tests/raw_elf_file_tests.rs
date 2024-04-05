@@ -1,6 +1,6 @@
 mod common;
 
-use common::{test_execution, test_execution_accessing_coap_pkt};
+use common::{test_execution, test_execution_accessing_coap_pkt, load_env};
 use internal_representation::BinaryFileLayout;
 
 // This module contains end-to-end integration tests of the compile-upload-
@@ -87,7 +87,8 @@ async fn gcoap_response_format() {
 /// that terminate quickly enough so that the microcontroller can send the CoAP
 /// response with the return value of the program within the request timeout.
 async fn test_raw_object_file(test_program: &str) {
-    test_execution(test_program, BinaryFileLayout::RawObjectFile).await;
+    let env = load_env();
+    test_execution(test_program, BinaryFileLayout::RawObjectFile, &env).await;
 }
 
 /// Tests execution of a given eBPF program which is expected to have access to
@@ -95,5 +96,6 @@ async fn test_raw_object_file(test_program: &str) {
 /// then tests whether the response received matches the one specified on the
 /// first line of the test file.
 async fn test_raw_object_file_accessing_coap_pkt(test_program: &str) {
-    test_execution_accessing_coap_pkt(test_program, BinaryFileLayout::RawObjectFile).await;
+    let env = load_env();
+    test_execution_accessing_coap_pkt(test_program, BinaryFileLayout::RawObjectFile, &env).await;
 }

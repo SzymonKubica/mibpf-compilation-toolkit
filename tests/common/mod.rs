@@ -1,38 +1,52 @@
+use std::{collections::HashMap, env, path::Path};
+
 use mibpf_tools::{self, execute};
 
 use internal_representation::{BinaryFileLayout, ExecutionModel, TargetVM};
 use mibpf_tools::deploy;
 use serde::Deserialize;
 
-pub struct Environment<'a> {
-    pub mibpf_root_dir: &'a str,
-    pub coap_root_dir: &'a str,
-    pub riot_instance_net_if: &'a str,
-    pub riot_instance_ip: &'a str,
-    pub host_net_if: &'a str,
-    pub host_ip: &'a str,
-    pub board_name: &'a str,
+use dotenv;
+
+pub struct Environment {
+    pub mibpf_root_dir: String,
+    pub coap_root_dir: String,
+    pub riot_instance_net_if: String,
+    pub riot_instance_ip: String,
+    pub host_net_if: String,
+    pub host_ip: String,
+    pub board_name: String,
 }
 
-const ENV: Environment = Environment {
-    mibpf_root_dir: "..",
-    coap_root_dir: "../coaproot",
-    riot_instance_net_if: "6",
-    riot_instance_ip: "fe80::a0d9:ebff:fed5:986b",
-    host_net_if: "tapbr0",
-    host_ip: "fe80::cc9a:73ff:fe4a:47f6",
-    board_name: "native",
-};
+pub fn load_env() -> Environment {
+    let path = Path::new(".env");
+    let _ = dotenv::from_path(path);
 
+    Environment {
+        mibpf_root_dir: dotenv::var("MIBPF_ROOT_DIR").unwrap_or_else(|_| "..".to_string()),
+        coap_root_dir: dotenv::var("COAP_ROOT_DIR").unwrap_or_else(|_| "../coaproot".to_string()),
+        riot_instance_net_if: dotenv::var("RIOT_INSTANCE_NET_IF")
+            .unwrap_or_else(|_| "6".to_string()),
+        riot_instance_ip: dotenv::var("RIOT_INSTANCE_IP")
+            .unwrap_or_else(|_| "fe80::a0d9:ebff:fed5:986b".to_string()),
+        host_net_if: dotenv::var("HOST_NET_IF").unwrap_or_else(|_| "tapbr0".to_string()),
+        host_ip: dotenv::var("HOST_IP").unwrap_or_else(|_| "fe80::cc9a:73ff:fe4a:47f6".to_string()),
+        board_name: dotenv::var("BOARD_NAME").unwrap_or_else(|_| "native".to_string()),
+    }
+}
 
-pub async fn test_execution(test_program: &str, layout: BinaryFileLayout) {
+pub async fn test_execution(
+    test_program: &str,
+    layout: BinaryFileLayout,
+    environment: &Environment,
+) {
     // We first deploy the program on the tested microcontroller
-    let result = deploy_test_script(test_program, layout).await;
+    let result = deploy_test_script(test_program, layout, environment).await;
     assert!(result.is_ok());
 
     // Then we request execution and check that the return value is what we
     // expected
-    let execution_result = execute_deployed_program(0, layout).await;
+    let execution_result = execute_deployed_program(0, layout, environment).await;
     if let Err(string) = &execution_result {
         println!("{}", string);
     }
@@ -43,14 +57,18 @@ pub async fn test_execution(test_program: &str, layout: BinaryFileLayout) {
     assert!(return_value == expected_return);
 }
 
-pub async fn test_execution_accessing_coap_pkt(test_program: &str, layout: BinaryFileLayout) {
+pub async fn test_execution_accessing_coap_pkt(
+    test_program: &str,
+    layout: BinaryFileLayout,
+    environment: &Environment,
+) {
     // We first deploy the program on the tested microcontroller
-    let result = deploy_test_script(test_program, layout).await;
+    let result = deploy_test_script(test_program, layout, environment).await;
     assert!(result.is_ok());
 
     // Then we request execution and check that the return value is what we
     // expected
-    let execution_result = execute_deployed_program_on_coap(0, layout).await;
+    let execution_result = execute_deployed_program_on_coap(0, layout, environment).await;
     if let Err(string) = &execution_result {
         println!("{}", string);
     }
@@ -65,21 +83,25 @@ const TEST_SOURCES_DIR: &'static str = "tests/test-sources";
 
 /// Test utility funciton used for sending the eBPF scripts to the device given
 /// the environment configuration.
-pub async fn deploy_test_script(file_name: &str, layout: BinaryFileLayout) -> Result<(), String> {
+pub async fn deploy_test_script(
+    file_name: &str,
+    layout: BinaryFileLayout,
+    environment: &Environment,
+) -> Result<(), String> {
     let file_path = format!("{}/{}", TEST_SOURCES_DIR, file_name);
     let out_dir = format!("{}/out", TEST_SOURCES_DIR);
     deploy(
         &file_path,
         &out_dir,
         layout,
-        ENV.coap_root_dir,
+        &environment.coap_root_dir,
         0,
-        ENV.riot_instance_net_if,
-        ENV.riot_instance_ip,
-        ENV.host_net_if,
-        ENV.host_ip,
-        ENV.board_name,
-        Some(ENV.mibpf_root_dir),
+        &environment.riot_instance_net_if,
+        &environment.riot_instance_ip,
+        &environment.host_net_if,
+        &environment.host_ip,
+        &environment.board_name,
+        Some(&environment.mibpf_root_dir),
     )
     .await
 }
@@ -95,8 +117,7 @@ pub fn extract_expected_response(file_name: &str) -> String {
     let reader = BufReader::new(file);
     let first_line = reader.lines().next().unwrap().unwrap();
     // The format of the first line is: // TEST_RESULT: {response}
-    let mut first_line_iter = first_line
-        .split(" ");
+    let mut first_line_iter = first_line.split(" ");
 
     // We skip the first two tokens: '//' and 'TEST_RESULT' and then collect the
     // rest in case the response contains spaces
@@ -133,14 +154,15 @@ pub fn extract_expected_return(file_name: &str) -> i32 {
 pub async fn execute_deployed_program_on_coap(
     suit_storage_slot: usize,
     layout: BinaryFileLayout,
+    environment: &Environment,
 ) -> Result<String, String> {
     let available_helpers = (0..23).into_iter().collect::<Vec<u8>>();
     let response = execute(
-        ENV.riot_instance_ip,
+        &environment.riot_instance_ip,
         TargetVM::Rbpf,
         layout,
         suit_storage_slot,
-        ENV.host_net_if,
+        &environment.host_net_if,
         ExecutionModel::WithAccessToCoapPacket,
         &available_helpers,
     )
@@ -155,14 +177,15 @@ pub async fn execute_deployed_program_on_coap(
 pub async fn execute_deployed_program(
     suit_storage_slot: usize,
     layout: BinaryFileLayout,
+    environment: &Environment,
 ) -> Result<i32, String> {
     let available_helpers = (0..23).into_iter().collect::<Vec<u8>>();
     let response = execute(
-        ENV.riot_instance_ip,
+        &environment.riot_instance_ip,
         TargetVM::Rbpf,
         layout,
         suit_storage_slot,
-        ENV.host_net_if,
+        &environment.host_net_if,
         ExecutionModel::ShortLived,
         &available_helpers,
     )

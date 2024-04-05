@@ -20,6 +20,7 @@ log = "0.4.21"
 env_logger = "0.11.3"
 internal-representation = { path = "../internal-representation"}
 bytecode-patching = { path = "../bytecode-patching"}
+dotenv = "0.15.0"
 
 
 
