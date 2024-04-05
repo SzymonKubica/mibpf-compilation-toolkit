@@ -42,6 +42,11 @@ async fn bpf_fmt_s16_dfp() {
     test_raw_elf_file("bpf_fmt_s16_dfp.c").await;
 }
 
+#[tokio::test]
+async fn bpf_fmt_u32_dec() {
+    test_raw_elf_file("bpf_fmt_u32_dec.c").await;
+}
+
 /// Runs a test which deploys an eBPF script which is prepared to be compatible
 /// with [`BinaryFileLayout::RawObjectFile`], the tested implementation on the
 /// microcontroller resolves relocations once the program is loaded into memory,

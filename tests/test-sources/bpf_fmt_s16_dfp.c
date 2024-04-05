@@ -2,11 +2,10 @@
 #include <stdint.h>
 #include "helpers.h"
 
-int test_fmt(void *ctx)
+// We test bpf_fmt_s16_dfp helper here by formating the value -12.5 into a buffer.
+int test_bpf_fmt_s16_dfp(void *ctx)
 {
-
     int16_t val2 = -125;
-
     // We also test the second helper here, for integers that need not be
     // unsigned.
     char *buffer = "     ";
