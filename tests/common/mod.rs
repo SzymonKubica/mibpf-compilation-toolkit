@@ -24,6 +24,43 @@ const ENV: Environment = Environment {
     board_name: "native",
 };
 
+
+pub async fn test_execution(test_program: &str, layout: BinaryFileLayout) {
+    // We first deploy the program on the tested microcontroller
+    let result = deploy_test_script(test_program, layout).await;
+    assert!(result.is_ok());
+
+    // Then we request execution and check that the return value is what we
+    // expected
+    let execution_result = execute_deployed_program(0, layout).await;
+    if let Err(string) = &execution_result {
+        println!("{}", string);
+    }
+    assert!(execution_result.is_ok());
+    let return_value = execution_result.unwrap();
+
+    let expected_return = extract_expected_return(test_program);
+    assert!(return_value == expected_return);
+}
+
+pub async fn test_execution_accessing_coap_pkt(test_program: &str, layout: BinaryFileLayout) {
+    // We first deploy the program on the tested microcontroller
+    let result = deploy_test_script(test_program, layout).await;
+    assert!(result.is_ok());
+
+    // Then we request execution and check that the return value is what we
+    // expected
+    let execution_result = execute_deployed_program_on_coap(0, layout).await;
+    if let Err(string) = &execution_result {
+        println!("{}", string);
+    }
+    assert!(execution_result.is_ok());
+    let response = execution_result.unwrap();
+
+    let expected = extract_expected_response(test_program);
+    assert!(response == expected);
+}
+
 const TEST_SOURCES_DIR: &'static str = "tests/test-sources";
 
 /// Test utility funciton used for sending the eBPF scripts to the device given
