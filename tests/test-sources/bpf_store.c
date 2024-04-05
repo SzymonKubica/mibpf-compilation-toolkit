@@ -1,3 +1,4 @@
+// TEST_RESULT: 1234
 #include <stdint.h>
 #include "helpers.h"
 

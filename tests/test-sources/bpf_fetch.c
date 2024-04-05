@@ -1,4 +1,4 @@
-
+// TEST_RESULT: 0
 #include "helpers.h"
 
 int test_bpf_fetch() {

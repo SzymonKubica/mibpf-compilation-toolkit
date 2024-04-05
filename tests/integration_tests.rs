@@ -10,6 +10,11 @@ use serde::Deserialize;
 // that the tests are run using a native RIOT instance running on the host
 // desktop machine.
 //
+// The tests are set up in a way that each test file contains the expected return
+// value on the first line in the source file. This testsuite extracts that information
+// and compares it to the actual output returned in the response from the RIOT
+// instance running the mibpf server.
+//
 // TODO: write up setup instructions
 // TODO: allow for specifying environment externally
 struct Environment<'a> {
@@ -55,6 +60,20 @@ async fn deploy_test_script(file_name: &str, layout: BinaryFileLayout) -> Result
     .await
 }
 
+fn extract_expected_return(file_name: &str) -> i32 {
+    use std::fs::File;
+    use std::io::{BufRead, BufReader};
+    let file_path = format!("{}/{}", TEST_SOURCES_DIR, file_name);
+    let file = File::open(file_path).unwrap();
+    let reader = BufReader::new(file);
+    let first_line = reader.lines().next().unwrap().unwrap();
+    // The format of the first line is: // TEST_RESULT: 0
+    let mut first_line_iter = first_line.split(" ");
+    first_line_iter.next();
+    first_line_iter.next();
+    first_line_iter.next().unwrap().parse::<i32>().unwrap()
+}
+
 async fn execute_deployed_script(
     suit_storage_slot: usize,
     layout: BinaryFileLayout,
@@ -88,7 +107,7 @@ async fn execute_deployed_script(
     Ok(response.result)
 }
 
-async fn test_raw_elf_file(test_program: &str, expected_return: i32) {
+async fn test_raw_elf_file(test_program: &str) {
     let layout = BinaryFileLayout::RawObjectFile;
 
     // We first deploy the program on the tested microcontroller
@@ -103,25 +122,27 @@ async fn test_raw_elf_file(test_program: &str, expected_return: i32) {
     }
     assert!(execution_result.is_ok());
     let return_value = execution_result.unwrap();
+
+    let expected_return = extract_expected_return(test_program);
     assert!(return_value == expected_return);
 }
 
 #[tokio::test]
 async fn printf() {
-    test_raw_elf_file("printf.c", 0).await;
+    test_raw_elf_file("printf.c").await;
 }
 
 #[tokio::test]
 async fn data_relocations() {
-    test_raw_elf_file("data_relocations.c", 123).await;
+    test_raw_elf_file("data_relocations.c").await;
 }
 
 #[tokio::test]
 async fn bpf_fetch() {
-    test_raw_elf_file("bpf_fetch.c", 0).await;
+    test_raw_elf_file("bpf_fetch.c").await;
 }
 
 #[tokio::test]
 async fn bpf_store() {
-    test_raw_elf_file("bpf_store.c", 1234).await;
+    test_raw_elf_file("bpf_store.c").await;
 }
