@@ -1,3 +1,4 @@
+// TEST_RESULT: 0
 #include "helpers.h"
 
 // This string should go into the .rodata section
