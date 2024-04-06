@@ -1,6 +1,6 @@
 mod common;
 
-use common::{test_execution, test_execution_accessing_coap_pkt, load_env};
+use common::{load_env, test_execution, test_execution_accessing_coap_pkt};
 use internal_representation::BinaryFileLayout;
 
 // This module contains end-to-end integration tests of the compile-upload-
@@ -37,6 +37,11 @@ async fn bpf_store() {
 }
 
 #[tokio::test]
+async fn bpf_strlen() {
+    test_raw_object_file("bpf_strlen.c").await;
+}
+
+#[tokio::test]
 async fn bpf_fmt_s16_dfp() {
     test_raw_object_file("bpf_fmt_s16_dfp.c").await;
 }
@@ -54,6 +59,11 @@ async fn pc_relative_calls() {
 #[tokio::test]
 async fn inlined_calls() {
     test_raw_object_file("inlined_calls.c").await;
+}
+
+#[tokio::test]
+async fn fletcher_32_checksum() {
+    test_raw_object_file("fletcher32_checksum.c").await;
 }
 
 #[tokio::test]

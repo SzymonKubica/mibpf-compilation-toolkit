@@ -37,6 +37,11 @@ async fn bpf_fetch() {
 }
 
 #[tokio::test]
+async fn bpf_strlen() {
+    test_only_text_section("bpf_strlen_only_text.c").await;
+}
+
+#[tokio::test]
 async fn bpf_store() {
     test_only_text_section("bpf_store_only_text.c").await;
 }
