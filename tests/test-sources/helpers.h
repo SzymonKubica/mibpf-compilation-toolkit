@@ -81,7 +81,8 @@ static void (*bpf_coap_add_format)(bpf_coap_ctx_t *ctx, uint32_t format) =
 static uint8_t *(*bpf_coap_get_pdu)(bpf_coap_ctx_t *ctx) = (void *)
     BPF_FUNC_BPF_COAP_GET_PDU;
 
-/* FMT calls */
+/* FMT and String calls */
+static size_t (*bpf_strlen)(char *str) = (void *)BPF_FUNC_BPF_STRLEN;
 static size_t (*bpf_fmt_s16_dfp)(char *out, int16_t val, int fp_digits) =
     (void *)BPF_FUNC_BPF_FMT_S16_DFP;
 static size_t (*bpf_fmt_u32_dec)(char *out, uint32_t val) = (void *)
