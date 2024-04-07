@@ -47,7 +47,6 @@ async fn bpf_fmt_u32_dec() {
     test_function_relocation_metadata("bpf_fmt_u32_dec.c").await;
 }
 
-// TODO: figure out why this doesn't work
 #[ignore]
 #[tokio::test]
 async fn pc_relative_calls() {
@@ -64,8 +63,6 @@ async fn fletcher_32_checksum() {
     test_function_relocation_metadata("fletcher32_checksum.c").await;
 }
 
-// TODO: figure out why this doesn't work, the problem is some add with overflow.
-#[ignore]
 #[tokio::test]
 async fn gcoap_response_format() {
     test_function_relocation_metadata_accessing_coap_pkt("gcoap_response_format.c").await;
