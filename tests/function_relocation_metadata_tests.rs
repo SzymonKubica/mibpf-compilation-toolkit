@@ -47,7 +47,6 @@ async fn bpf_fmt_u32_dec() {
     test_function_relocation_metadata("bpf_fmt_u32_dec.c").await;
 }
 
-#[ignore]
 #[tokio::test]
 async fn pc_relative_calls() {
     test_function_relocation_metadata("pc_relative_calls.c").await;
