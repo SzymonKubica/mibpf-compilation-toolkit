@@ -164,6 +164,13 @@ async fn gcoap_response_format_helpers() {
     .await;
 }
 
+
+#[tokio::test]
+#[should_panic]
+async fn printf_no_required_helpers_panics() {
+    test_function_relocation_metadata_with_helpers("printf.c", vec![]).await;
+}
+
 /// Runs a test which deploys an eBPF script which is prepared to be compatible
 /// with [`BinaryFileLayout::RawObjectFile`], the tested implementation on the
 /// microcontroller resolves relocations once the program is loaded into memory,
