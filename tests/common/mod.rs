@@ -59,7 +59,8 @@ pub struct Environment {
 }
 
 pub fn load_env() -> Environment {
-    let path = Path::new(".env");
+    let path_str = env::var("DOTENV").unwrap_or_else(|_| ".env".to_string());
+    let path = Path::new(&path_str);
     let _ = dotenv::from_path(path);
 
     Environment {
@@ -96,6 +97,12 @@ pub async fn test_execution_specifying_helpers(
         println!("{}", string);
     }
     assert!(result.is_ok());
+
+    // When running on embedded targets we need to give them enough time
+    // to fetch the firmware
+    if environment.board_name != "native" {
+        std::thread::sleep(std::time::Duration::from_secs(1));
+    }
 
     // Then we request execution and check that the return value is what we
     // expected
@@ -136,6 +143,12 @@ pub async fn test_execution_accessing_coap_pkt_specifying_helpers(
     let result = deploy_test_script(test_program, layout, environment, available_helpers).await;
     if let Err(string) = &result {
         println!("{}", string);
+    }
+
+    // When running on embedded targets we need to give them enough time
+    // to fetch the firmware
+    if environment.board_name != "native" {
+        std::thread::sleep(std::time::Duration::from_secs(1));
     }
     assert!(result.is_ok());
 
