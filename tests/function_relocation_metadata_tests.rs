@@ -1,6 +1,9 @@
 mod common;
 
-use common::{load_env, test_execution, test_execution_accessing_coap_pkt};
+use common::{
+    load_env, test_execution, test_execution_accessing_coap_pkt,
+    test_execution_accessing_coap_pkt_specifying_helpers, test_execution_specifying_helpers,
+};
 use internal_representation::BinaryFileLayout;
 
 // This module contains end-to-end integration tests of the compile-upload-
@@ -67,6 +70,100 @@ async fn gcoap_response_format() {
     test_function_relocation_metadata_accessing_coap_pkt("gcoap_response_format.c").await;
 }
 
+#[tokio::test]
+async fn printf_helpers() {
+    test_function_relocation_metadata_with_helpers("printf.c", vec![common::BPF_PRINTF_IDX]).await;
+}
+
+#[tokio::test]
+async fn bpf_fetch_helpers() {
+    test_function_relocation_metadata_with_helpers(
+        "bpf_fetch.c",
+        vec![common::BPF_PRINTF_IDX, common::BPF_FETCH_GLOBAL_IDX],
+    )
+    .await;
+}
+
+#[tokio::test]
+async fn bpf_store_helpers() {
+    test_function_relocation_metadata_with_helpers(
+        "bpf_store.c",
+        vec![
+            common::BPF_PRINTF_IDX,
+            common::BPF_STORE_GLOBAL_IDX,
+            common::BPF_FETCH_GLOBAL_IDX,
+        ],
+    )
+    .await;
+}
+
+#[tokio::test]
+async fn bpf_strlen_helpers() {
+    test_function_relocation_metadata_with_helpers(
+        "bpf_strlen.c",
+        vec![common::BPF_PRINTF_IDX, common::BPF_STRLEN_IDX],
+    )
+    .await;
+}
+
+#[tokio::test]
+async fn bpf_fmt_s16_dfp_helpers() {
+    test_function_relocation_metadata_with_helpers(
+        "bpf_fmt_s16_dfp.c",
+        vec![common::BPF_PRINTF_IDX, common::BPF_FMT_S16_DFP_IDX],
+    )
+    .await;
+}
+
+#[tokio::test]
+async fn bpf_fmt_u32_dec_helpers() {
+    test_function_relocation_metadata_with_helpers(
+        "bpf_fmt_u32_dec.c",
+        vec![common::BPF_PRINTF_IDX, common::BPF_FMT_U32_DEC_IDX],
+    )
+    .await;
+}
+
+#[tokio::test]
+async fn pc_relative_calls_helpers() {
+    test_function_relocation_metadata_with_helpers(
+        "pc_relative_calls.c",
+        vec![common::BPF_PRINTF_IDX],
+    )
+    .await;
+}
+
+#[tokio::test]
+async fn inlined_calls_helpers() {
+    test_function_relocation_metadata_with_helpers("inlined_calls.c", vec![common::BPF_PRINTF_IDX])
+        .await;
+}
+
+#[tokio::test]
+async fn fletcher_32_checksum_helpers() {
+    test_function_relocation_metadata_with_helpers(
+        "fletcher32_checksum.c",
+        vec![common::BPF_PRINTF_IDX, common::BPF_STRLEN_IDX],
+    )
+    .await;
+}
+
+#[tokio::test]
+async fn gcoap_response_format_helpers() {
+    test_function_relocation_metadata_accessing_coap_pkt_with_helpers(
+        "gcoap_response_format.c",
+        vec![
+            common::BPF_PRINTF_IDX,
+            common::BPF_COAP_ADD_FORMAT_IDX,
+            common::BPF_COAP_OPT_FINISH_IDX,
+            common::BPF_MEMCPY_IDX,
+            common::BPF_GCOAP_RESP_INIT_IDX,
+            common::BPF_FMT_S16_DFP_IDX,
+        ],
+    )
+    .await;
+}
+
 /// Runs a test which deploys an eBPF script which is prepared to be compatible
 /// with [`BinaryFileLayout::RawObjectFile`], the tested implementation on the
 /// microcontroller resolves relocations once the program is loaded into memory,
@@ -102,6 +199,22 @@ async fn test_function_relocation_metadata(test_program: &str) {
     .await;
 }
 
+// Similar to `test_function_relocation_metadata` but allows for restricting access
+// to helper functions.
+async fn test_function_relocation_metadata_with_helpers(
+    test_program: &str,
+    allowed_helpers: Vec<u8>,
+) {
+    let env = load_env();
+    test_execution_specifying_helpers(
+        test_program,
+        BinaryFileLayout::FunctionRelocationMetadata,
+        &env,
+        allowed_helpers,
+    )
+    .await;
+}
+
 /// Tests execution of a given eBPF program which is expected to have access to
 /// the incoming network packet that requested the execution of the VM. It
 /// then tests whether the response received matches the one specified on the
@@ -112,6 +225,20 @@ async fn test_function_relocation_metadata_accessing_coap_pkt(test_program: &str
         test_program,
         BinaryFileLayout::FunctionRelocationMetadata,
         &env,
+    )
+    .await;
+}
+
+async fn test_function_relocation_metadata_accessing_coap_pkt_with_helpers(
+    test_program: &str,
+    allowed_helpers: Vec<u8>,
+) {
+    let env = load_env();
+    test_execution_accessing_coap_pkt_specifying_helpers(
+        test_program,
+        BinaryFileLayout::FunctionRelocationMetadata,
+        &env,
+        allowed_helpers,
     )
     .await;
 }

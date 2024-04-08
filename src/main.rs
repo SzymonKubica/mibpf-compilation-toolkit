@@ -140,6 +140,7 @@ fn handle_postprocessing(args: &Action) -> Result<(), String> {
         source_object_file,
         binary_file,
         binary_layout,
+        helper_indices,
     } = args
     else {
         return Err(format!("Invalid subcommand args: {:?}", args));
@@ -153,7 +154,7 @@ fn handle_postprocessing(args: &Action) -> Result<(), String> {
         "a.bin"
     };
 
-    apply_postprocessing(source_object_file, binary_layout, file_name)
+    apply_postprocessing(source_object_file, binary_layout, file_name, helper_indices.to_vec())
 }
 
 async fn handle_deploy(args: &Action) -> Result<(), String> {
@@ -168,6 +169,7 @@ async fn handle_deploy(args: &Action) -> Result<(), String> {
         host_ipv6_addr,
         binary_layout,
         riot_network_interface,
+        helper_indices,
     } = args
     else {
         return Err(format!("Invalid subcommand args: {:?}", args));
@@ -187,6 +189,7 @@ async fn handle_deploy(args: &Action) -> Result<(), String> {
         host_ipv6_addr,
         board_name,
         None,
+        helper_indices.to_vec(),
     )
     .await
 }

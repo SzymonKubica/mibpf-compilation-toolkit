@@ -30,6 +30,9 @@ pub enum Action {
         /// Determines which kind of postprocessing is applied to the ELF file.
         #[arg(long, default_value_t = String::from("FunctionRelocationMetadata"))]
         binary_layout: String,
+        /// Controlls which indices of helpers are made available to the VM
+        #[clap(short, long, value_parser, num_args = 1.., value_delimiter = ' ')]
+        helper_indices: Vec<u8>,
     },
     /// Sign the eBPF binary for SUIT update protocol. Generates  the manifest,
     /// signs it and places all files in the CoAP fileserver root directory.
@@ -131,6 +134,10 @@ pub enum Action {
         /// the binary blob and SUIT manifest.
         #[arg(long)]
         host_ipv6_addr: String,
+
+        /// Controlls which indices of helpers are made available to the VM
+        #[clap(short, long, value_parser, num_args = 1.., value_delimiter = ' ')]
+        helper_indices: Vec<u8>,
     },
     /// Sends a request to the RIOT instance to execute the loaded eBPF bytecode
     /// from a specified SUIT storage slot.

@@ -5,7 +5,7 @@ use std::{
 };
 
 use bytecode_patching::{
-    assemble_binary, assemble_femtocontainer_binary, extract_section,
+    assemble_binary_specifying_helpers, assemble_femtocontainer_binary, extract_section,
 };
 use internal_representation::BinaryFileLayout;
 
@@ -17,6 +17,7 @@ pub fn apply_postprocessing(
     source_object_file: &str,
     binary_layout: BinaryFileLayout,
     output_file_name: &str,
+    helper_indices: Vec<u8>,
 ) -> Result<(), String> {
     // When we want to perform relocations on the actual target device, we
     // only need to strip off the redundant information from the object file.
@@ -32,7 +33,7 @@ pub fn apply_postprocessing(
         }
         BinaryFileLayout::FunctionRelocationMetadata => {
             let program_bytes = read_bytes_from_file(source_object_file);
-            let relocated_program = assemble_binary(&program_bytes)?;
+            let relocated_program = assemble_binary_specifying_helpers(&program_bytes, helper_indices)?;
             relocated_program
         }
         BinaryFileLayout::FemtoContainersHeader => {

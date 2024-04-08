@@ -8,6 +8,46 @@ use serde::Deserialize;
 
 use dotenv;
 
+pub const BPF_PRINTF_IDX: u8 = 0x01;
+pub const BPF_DEBUG_PRINT_IDX: u8 = 0x03;
+
+/* Memory copy helper functions */
+pub const BPF_MEMCPY_IDX: u8 = 0x02;
+
+/* Key/value store functions */
+pub const BPF_STORE_LOCAL_IDX: u8 = 0x10;
+pub const BPF_STORE_GLOBAL_IDX: u8 = 0x11;
+pub const BPF_FETCH_LOCAL_IDX: u8 = 0x12;
+pub const BPF_FETCH_GLOBAL_IDX: u8 = 0x13;
+
+/* Saul functions */
+pub const BPF_SAUL_REG_FIND_NTH_IDX: u8 = 0x30;
+pub const BPF_SAUL_REG_FIND_TYPE_IDX: u8 = 0x31;
+pub const BPF_SAUL_REG_READ_IDX: u8 = 0x32;
+pub const BPF_SAUL_REG_WRITE_IDX: u8 = 0x33;
+
+/* (g)coap functions */
+pub const BPF_GCOAP_RESP_INIT_IDX: u8 = 0x40;
+pub const BPF_COAP_OPT_FINISH_IDX: u8 = 0x41;
+pub const BPF_COAP_ADD_FORMAT_IDX: u8 = 0x42;
+pub const BPF_COAP_GET_PDU_IDX: u8 = 0x43;
+
+/* Format and string functions */
+pub const BPF_STRLEN_IDX: u8 = 0x52;
+pub const BPF_FMT_S16_DFP_IDX: u8 = 0x50;
+pub const BPF_FMT_U32_DEC_IDX: u8 = 0x51;
+
+/* Time(r) functions */
+pub const BPF_NOW_MS_IDX: u8 = 0x20;
+
+/* ZTIMER */
+pub const BPF_ZTIMER_NOW_IDX: u8 = 0x60;
+pub const BPF_ZTIMER_PERIOD_WAKEUP_ID: u8 = 0x61;
+
+pub const BPF_GPIO_READ_INPUT: u8 = 0x70;
+pub const BPF_GPIO_READ_RAW: u8 = 0x71;
+pub const BPF_GPIO_WRITE: u8 = 0x72;
+
 pub struct Environment {
     pub mibpf_root_dir: String,
     pub coap_root_dir: String,
@@ -34,14 +74,27 @@ pub fn load_env() -> Environment {
         board_name: dotenv::var("BOARD_NAME").unwrap_or_else(|_| "native".to_string()),
     }
 }
-
 pub async fn test_execution(
     test_program: &str,
     layout: BinaryFileLayout,
     environment: &Environment,
 ) {
+    // By default all helpers are allowed
+    let available_helpers = (0..128).into_iter().collect::<Vec<u8>>();
+    test_execution_specifying_helpers(test_program, layout, environment, available_helpers).await;
+}
+
+pub async fn test_execution_specifying_helpers(
+    test_program: &str,
+    layout: BinaryFileLayout,
+    environment: &Environment,
+    available_helpers: Vec<u8>,
+) {
     // We first deploy the program on the tested microcontroller
-    let result = deploy_test_script(test_program, layout, environment).await;
+    let result = deploy_test_script(test_program, layout, environment, available_helpers).await;
+    if let Err(string) = &result {
+        println!("{}", string);
+    }
     assert!(result.is_ok());
 
     // Then we request execution and check that the return value is what we
@@ -62,8 +115,28 @@ pub async fn test_execution_accessing_coap_pkt(
     layout: BinaryFileLayout,
     environment: &Environment,
 ) {
+    // By default all helpers are allowed
+    let available_helpers = (0..128).into_iter().collect::<Vec<u8>>();
+    test_execution_accessing_coap_pkt_specifying_helpers(
+        test_program,
+        layout,
+        environment,
+        available_helpers,
+    )
+    .await
+}
+
+pub async fn test_execution_accessing_coap_pkt_specifying_helpers(
+    test_program: &str,
+    layout: BinaryFileLayout,
+    environment: &Environment,
+    available_helpers: Vec<u8>,
+) {
     // We first deploy the program on the tested microcontroller
-    let result = deploy_test_script(test_program, layout, environment).await;
+    let result = deploy_test_script(test_program, layout, environment, available_helpers).await;
+    if let Err(string) = &result {
+        println!("{}", string);
+    }
     assert!(result.is_ok());
 
     // Then we request execution and check that the return value is what we
@@ -72,6 +145,7 @@ pub async fn test_execution_accessing_coap_pkt(
     if let Err(string) = &execution_result {
         println!("{}", string);
     }
+
     assert!(execution_result.is_ok());
     let response = execution_result.unwrap();
 
@@ -87,6 +161,7 @@ pub async fn deploy_test_script(
     file_name: &str,
     layout: BinaryFileLayout,
     environment: &Environment,
+    allowed_helpers: Vec<u8>,
 ) -> Result<(), String> {
     let file_path = format!("{}/{}", TEST_SOURCES_DIR, file_name);
     let out_dir = format!("{}/out", TEST_SOURCES_DIR);
@@ -102,6 +177,7 @@ pub async fn deploy_test_script(
         &environment.host_ip,
         &environment.board_name,
         Some(&environment.mibpf_root_dir),
+        allowed_helpers,
     )
     .await
 }
@@ -156,7 +232,8 @@ pub async fn execute_deployed_program_on_coap(
     layout: BinaryFileLayout,
     environment: &Environment,
 ) -> Result<String, String> {
-    let available_helpers = (0..23).into_iter().collect::<Vec<u8>>();
+    // We allow all helpers
+    let available_helpers = (0..24).into_iter().collect::<Vec<u8>>();
     let response = execute(
         &environment.riot_instance_ip,
         TargetVM::Rbpf,
@@ -174,12 +251,12 @@ pub async fn execute_deployed_program_on_coap(
     Ok(response.to_string())
 }
 
-pub async fn execute_deployed_program(
+pub async fn execute_deployed_program_specifying_helpers(
     suit_storage_slot: usize,
     layout: BinaryFileLayout,
     environment: &Environment,
+    available_helpers: Vec<u8>,
 ) -> Result<i32, String> {
-    let available_helpers = (0..23).into_iter().collect::<Vec<u8>>();
     let response = execute(
         &environment.riot_instance_ip,
         TargetVM::Rbpf,
@@ -206,4 +283,22 @@ pub async fn execute_deployed_program(
         .map_err(|e| format!("Failed to parse the json response: {}", e))?;
 
     Ok(response.result)
+}
+
+pub async fn execute_deployed_program(
+    suit_storage_slot: usize,
+    layout: BinaryFileLayout,
+    environment: &Environment,
+) -> Result<i32, String> {
+    // When sending a request to execute, we can only specify up to 24 helpers
+    // which are then encoded in a 24-bit bitstring. Because of this, we can't
+    // use the full range of u8
+    let available_helpers = (0..24).into_iter().collect::<Vec<u8>>();
+    execute_deployed_program_specifying_helpers(
+        suit_storage_slot,
+        layout,
+        environment,
+        available_helpers,
+    )
+    .await
 }
