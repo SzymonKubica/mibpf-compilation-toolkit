@@ -36,13 +36,16 @@ pub async fn execute(
             "coap://[{}%{}]/vm/spawn",
             riot_ipv6_addr, host_network_interface
         ),
+        ExecutionModel::Benchmark => format!(
+            "coap://[{}%{}]/vm/bench",
+            riot_ipv6_addr, host_network_interface
+        ),
     };
 
     debug!("Sending a request to the url: {}", url);
 
     let payload = serde_json::to_string(&request).unwrap();
     debug!("Request payload:\n{}", payload);
-
 
     // We use the aiocoap-client here as opposed to the rust coap library because
     // that one didn't support overriding the network interface in the ipv6 urls

@@ -117,6 +117,60 @@ pub async fn test_execution_specifying_helpers(
     assert!(return_value == expected_return);
 }
 
+
+pub async fn benchmark_execution(
+    test_program: &str,
+    layout: BinaryFileLayout,
+    environment: &Environment,
+) {
+
+    // By default all helpers are allowed
+    let available_helpers = (0..128).into_iter().collect::<Vec<u8>>();
+    // We first deploy the program on the tested microcontroller
+    let result = deploy_test_script(test_program, layout, environment, available_helpers).await;
+    if let Err(string) = &result {
+        println!("{}", string);
+    }
+    assert!(result.is_ok());
+
+    // When running on embedded targets we need to give them enough time
+    // to fetch the firmware
+    if environment.board_name != "native" {
+        std::thread::sleep(std::time::Duration::from_secs(1));
+    }
+
+    // when executing a different helper encoding is used.
+
+
+
+    let available_helpers = (0..24).into_iter().collect::<Vec<u8>>();
+    let response = execute(
+        &environment.riot_instance_ip,
+        TargetVM::Rbpf,
+        layout,
+        0,
+        &environment.host_net_if,
+        ExecutionModel::Benchmark,
+        &available_helpers,
+    )
+    .await.unwrap();
+    // {"execution_time": 10, "result": 0}
+    #[derive(Deserialize)]
+    struct Response {
+        load_time: u32,
+        // Execution time in milliseconds
+        execution_time: u32,
+        // Return value of the program
+        program_size: u32,
+        result: i32,
+    }
+
+    println!("Response: {}", response);
+    let response = serde_json::from_str::<Response>(&response)
+        .map_err(|e| format!("Failed to parse the json response: {}", e)).unwrap();
+}
+
+
 pub async fn test_execution_accessing_coap_pkt(
     test_program: &str,
     layout: BinaryFileLayout,
