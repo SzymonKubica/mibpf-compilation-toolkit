@@ -1,4 +1,5 @@
 /target
 common/target
 elf-utils/target
-tools/tests/test-sources/out/
+tools/tests/test-sources/out/*
+*.o
