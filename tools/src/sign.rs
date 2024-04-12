@@ -21,7 +21,7 @@ pub fn sign(
     };
 
     let Ok(output) = Command::new("bash")
-        .env("RIOT_HOME", "../RIOT")
+        .env("RIOT_HOME", &format!("{}/RIOT", mibpf_home))
         .arg(&format!("{}/scripts/sign-binary.sh", mibpf_home))
         .arg(host_network_interface)
         .arg(board_name)
@@ -34,7 +34,10 @@ pub fn sign(
         return Err("Failed to sign the binary".to_string());
     };
 
-    debug!("sign.sh output: \n{}", String::from_utf8(output.stdout).unwrap());
+    debug!(
+        "sign.sh output: \n{}",
+        String::from_utf8(output.stdout).unwrap()
+    );
 
     Ok(())
 }
