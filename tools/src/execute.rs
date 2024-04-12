@@ -1,9 +1,9 @@
 use std::process::Command;
 
-use internal_representation::ExecutionModel;
+use mibpf_common::ExecutionModel;
 use log::debug;
 
-use crate::internal_representation::{
+use crate::mibpf_common::{
     BinaryFileLayout, TargetVM, VMConfiguration, VMExecutionRequestMsg,
 };
 

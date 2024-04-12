@@ -1,5 +1,5 @@
 use crate::{
-    compile::compile, internal_representation::BinaryFileLayout,
+    compile::compile, mibpf_common::BinaryFileLayout,
     postprocessing::apply_postprocessing, pull::pull, sign::sign,
 };
 

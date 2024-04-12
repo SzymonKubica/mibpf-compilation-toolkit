@@ -1,10 +1,12 @@
 mod common;
 
 use common::{
-    load_env, test_execution, test_execution_accessing_coap_pkt,
+    test_execution, test_execution_accessing_coap_pkt,
     test_execution_accessing_coap_pkt_specifying_helpers, test_execution_specifying_helpers,
 };
-use internal_representation::BinaryFileLayout;
+use mibpf_tools::load_env;
+
+use mibpf_common::{BinaryFileLayout, HelperFunctionID};
 
 // This module contains end-to-end integration tests of the compile-upload-
 // execute workflow of the eBPF programs on microcontrollers. It is recommended
@@ -72,14 +74,21 @@ async fn gcoap_response_format() {
 
 #[tokio::test]
 async fn printf_helpers() {
-    test_function_relocation_metadata_with_helpers("printf.c", vec![common::BPF_PRINTF_IDX]).await;
+    test_function_relocation_metadata_with_helpers(
+        "printf.c",
+        vec![HelperFunctionID::BPF_PRINTF_IDX.into()],
+    )
+    .await;
 }
 
 #[tokio::test]
 async fn bpf_fetch_helpers() {
     test_function_relocation_metadata_with_helpers(
         "bpf_fetch.c",
-        vec![common::BPF_PRINTF_IDX, common::BPF_FETCH_GLOBAL_IDX],
+        vec![
+            HelperFunctionID::BPF_PRINTF_IDX.into(),
+            HelperFunctionID::BPF_FETCH_GLOBAL_IDX.into(),
+        ],
     )
     .await;
 }
@@ -89,9 +98,9 @@ async fn bpf_store_helpers() {
     test_function_relocation_metadata_with_helpers(
         "bpf_store.c",
         vec![
-            common::BPF_PRINTF_IDX,
-            common::BPF_STORE_GLOBAL_IDX,
-            common::BPF_FETCH_GLOBAL_IDX,
+            HelperFunctionID::BPF_PRINTF_IDX.into(),
+            HelperFunctionID::BPF_STORE_GLOBAL_IDX.into(),
+            HelperFunctionID::BPF_FETCH_GLOBAL_IDX.into(),
         ],
     )
     .await;
@@ -101,7 +110,10 @@ async fn bpf_store_helpers() {
 async fn bpf_strlen_helpers() {
     test_function_relocation_metadata_with_helpers(
         "bpf_strlen.c",
-        vec![common::BPF_PRINTF_IDX, common::BPF_STRLEN_IDX],
+        vec![
+            HelperFunctionID::BPF_PRINTF_IDX.into(),
+            HelperFunctionID::BPF_STRLEN_IDX.into(),
+        ],
     )
     .await;
 }
@@ -110,7 +122,10 @@ async fn bpf_strlen_helpers() {
 async fn bpf_fmt_s16_dfp_helpers() {
     test_function_relocation_metadata_with_helpers(
         "bpf_fmt_s16_dfp.c",
-        vec![common::BPF_PRINTF_IDX, common::BPF_FMT_S16_DFP_IDX],
+        vec![
+            HelperFunctionID::BPF_PRINTF_IDX.into(),
+            HelperFunctionID::BPF_FMT_S16_DFP_IDX.into(),
+        ],
     )
     .await;
 }
@@ -119,7 +134,10 @@ async fn bpf_fmt_s16_dfp_helpers() {
 async fn bpf_fmt_u32_dec_helpers() {
     test_function_relocation_metadata_with_helpers(
         "bpf_fmt_u32_dec.c",
-        vec![common::BPF_PRINTF_IDX, common::BPF_FMT_U32_DEC_IDX],
+        vec![
+            HelperFunctionID::BPF_PRINTF_IDX.into(),
+            HelperFunctionID::BPF_FMT_U32_DEC_IDX.into(),
+        ],
     )
     .await;
 }
@@ -128,22 +146,28 @@ async fn bpf_fmt_u32_dec_helpers() {
 async fn pc_relative_calls_helpers() {
     test_function_relocation_metadata_with_helpers(
         "pc_relative_calls.c",
-        vec![common::BPF_PRINTF_IDX],
+        vec![HelperFunctionID::BPF_PRINTF_IDX.into()],
     )
     .await;
 }
 
 #[tokio::test]
 async fn inlined_calls_helpers() {
-    test_function_relocation_metadata_with_helpers("inlined_calls.c", vec![common::BPF_PRINTF_IDX])
-        .await;
+    test_function_relocation_metadata_with_helpers(
+        "inlined_calls.c",
+        vec![HelperFunctionID::BPF_PRINTF_IDX.into()],
+    )
+    .await;
 }
 
 #[tokio::test]
 async fn fletcher_32_checksum_helpers() {
     test_function_relocation_metadata_with_helpers(
         "fletcher32_checksum.c",
-        vec![common::BPF_PRINTF_IDX, common::BPF_STRLEN_IDX],
+        vec![
+            HelperFunctionID::BPF_PRINTF_IDX.into(),
+            HelperFunctionID::BPF_STRLEN_IDX.into(),
+        ],
     )
     .await;
 }
@@ -153,17 +177,16 @@ async fn gcoap_response_format_helpers() {
     test_function_relocation_metadata_accessing_coap_pkt_with_helpers(
         "gcoap_response_format.c",
         vec![
-            common::BPF_PRINTF_IDX,
-            common::BPF_COAP_ADD_FORMAT_IDX,
-            common::BPF_COAP_OPT_FINISH_IDX,
-            common::BPF_MEMCPY_IDX,
-            common::BPF_GCOAP_RESP_INIT_IDX,
-            common::BPF_FMT_S16_DFP_IDX,
+            HelperFunctionID::BPF_PRINTF_IDX.into(),
+            HelperFunctionID::BPF_COAP_ADD_FORMAT_IDX.into(),
+            HelperFunctionID::BPF_COAP_OPT_FINISH_IDX.into(),
+            HelperFunctionID::BPF_MEMCPY_IDX.into(),
+            HelperFunctionID::BPF_GCOAP_RESP_INIT_IDX.into(),
+            HelperFunctionID::BPF_FMT_S16_DFP_IDX.into(),
         ],
     )
     .await;
 }
-
 
 #[tokio::test]
 #[should_panic]

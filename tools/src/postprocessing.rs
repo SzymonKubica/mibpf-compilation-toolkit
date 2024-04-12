@@ -4,10 +4,10 @@ use std::{
     process::Command,
 };
 
-use bytecode_patching::{
+use mibpf_elf_utils::{
     assemble_binary_specifying_helpers, assemble_femtocontainer_binary, extract_section,
 };
-use internal_representation::BinaryFileLayout;
+use mibpf_common::BinaryFileLayout;
 
 
 // This module is responsible for applying different post-processing steps

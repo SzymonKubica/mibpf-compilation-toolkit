@@ -1,7 +1,8 @@
 mod common;
 
-use common::{load_env, test_execution, test_execution_accessing_coap_pkt};
-use internal_representation::BinaryFileLayout;
+use mibpf_tools::load_env;
+use common::{test_execution, test_execution_accessing_coap_pkt};
+use mibpf_common::BinaryFileLayout;
 
 // This module tests the VM executions with the OnlyTextSection binary file layout.
 // This means that the program that the VM gets to execute contains only the

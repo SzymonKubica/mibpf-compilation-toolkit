@@ -1,7 +1,7 @@
 extern crate clap;
 extern crate coap;
 extern crate env_logger;
-extern crate internal_representation;
+extern crate mibpf_common;
 extern crate rbpf;
 
 mod args;
@@ -19,7 +19,7 @@ use clap::Parser;
 use compile::compile;
 use deploy::deploy;
 use execute::execute;
-use internal_representation::{BinaryFileLayout, ExecutionModel, TargetVM};
+use mibpf_common::{BinaryFileLayout, ExecutionModel, TargetVM};
 use log::info;
 use postprocessing::apply_postprocessing;
 use pull::pull;

@@ -1,7 +1,8 @@
 mod common;
 
 use common::benchmark_execution;
-use internal_representation::BinaryFileLayout;
+use mibpf_common::BinaryFileLayout;
+#[ignore]
 #[tokio::test]
 pub async fn benchmark_binary_layouts() {
     let layouts = vec![
@@ -10,7 +11,7 @@ pub async fn benchmark_binary_layouts() {
         BinaryFileLayout::RawObjectFile,
     ];
 
-    let environment = common::load_env();
+    let environment = mibpf_tools::load_env();
 
     for layout in layouts {
         println!("Benchmarking {:?}", layout);

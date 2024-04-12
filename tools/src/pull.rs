@@ -2,7 +2,7 @@ use std::{error, process::Command};
 
 use log::{debug, error};
 
-use crate::internal_representation::SuitPullRequest;
+use crate::mibpf_common::SuitPullRequest;
 
 pub async fn pull(
     riot_ipv6_addr: &str,
