@@ -1,2 +1,4 @@
 /target
-tests/test-sources/out/
+common/target
+elf-utils/target
+tools/tests/test-sources/out/
