@@ -1,12 +1,21 @@
 use std::{env, path::Path};
 
 pub struct Environment {
+    /// Root directory of the mibpf repository.
     pub mibpf_root_dir: String,
+    /// Root directory of the CoAP server.
     pub coap_root_dir: String,
+    /// Directory for the object files.
+    pub out_dir: String,
+    /// Network interface of the RIOT instance.
     pub riot_instance_net_if: String,
+    /// IPv6 address of the RIOT instance.
     pub riot_instance_ip: String,
+    /// Network interface of the host machine.
     pub host_net_if: String,
+    /// IPv6 address of the host machine.
     pub host_ip: String,
+    /// Name of the target microcontroller board.
     pub board_name: String,
 }
 
@@ -18,6 +27,7 @@ pub fn load_env() -> Environment {
     Environment {
         mibpf_root_dir: dotenv::var("MIBPF_ROOT_DIR").unwrap_or_else(|_| "..".to_string()),
         coap_root_dir: dotenv::var("COAP_ROOT_DIR").unwrap_or_else(|_| "../coaproot".to_string()),
+        out_dir: dotenv::var("OUT_DIR").unwrap_or_else(|_| "../out".to_string()),
         riot_instance_net_if: dotenv::var("RIOT_INSTANCE_NET_IF")
             .unwrap_or_else(|_| "6".to_string()),
         riot_instance_ip: dotenv::var("RIOT_INSTANCE_IP")

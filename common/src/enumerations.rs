@@ -55,6 +55,8 @@ impl VMConfiguration {
     /// # Example
     /// ```
     /// // Initialize the configuration object.
+    ///
+    /// use mibpf_common::{TargetVM, BinaryFileLayout, VMConfiguration};
     /// let config = VMConfiguration::new(TargetVM::FemtoContainer, BinaryFileLayout::FemtoContainersHeader, 0);
     ///
     /// // Encode the configuration.

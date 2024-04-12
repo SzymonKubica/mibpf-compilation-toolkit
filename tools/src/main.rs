@@ -7,6 +7,7 @@ extern crate rbpf;
 mod args;
 mod compile;
 mod deploy;
+mod environment;
 mod execute;
 mod postprocessing;
 mod pull;
@@ -18,9 +19,9 @@ use args::Action;
 use clap::Parser;
 use compile::compile;
 use deploy::deploy;
+use environment::load_env;
 use execute::execute;
 use mibpf_common::{BinaryFileLayout, ExecutionModel, TargetVM};
-use log::info;
 use postprocessing::apply_postprocessing;
 use pull::pull;
 use sign::sign;
@@ -30,13 +31,15 @@ async fn main() {
     env_logger::init();
     let args = args::Args::parse();
 
+    let use_env = args.use_env;
+
     let result = match &args.command {
-        Action::Compile { .. } => handle_compile(&args.command),
+        Action::Compile { .. } => handle_compile(&args.command, use_env),
         Action::Postprocessing { .. } => handle_postprocessing(&args.command),
-        Action::Sign { .. } => handle_sign(&args.command),
-        Action::Pull { .. } => handle_pull(&args.command).await,
-        Action::Execute { .. } => handle_execute(&args.command).await,
-        Action::Deploy { .. } => handle_deploy(&args.command).await,
+        Action::Sign { .. } => handle_sign(&args.command, use_env),
+        Action::Pull { .. } => handle_pull(&args.command, use_env).await,
+        Action::Execute { .. } => handle_execute(&args.command, use_env).await,
+        Action::Deploy { .. } => handle_deploy(&args.command, use_env).await,
     };
 
     if let Err(e) = result {
@@ -45,7 +48,7 @@ async fn main() {
     }
 }
 
-fn handle_compile(args: &Action) -> Result<(), String> {
+fn handle_compile(args: &Action, use_env: bool) -> Result<(), String> {
     let Action::Compile {
         bpf_source_file,
         binary_file,
@@ -55,10 +58,16 @@ fn handle_compile(args: &Action) -> Result<(), String> {
         return Err(format!("Invalid subcommand args: {:?}", args));
     };
 
+    if use_env {
+        let env = load_env();
+
+        return compile(bpf_source_file, binary_file.as_deref(), &env.out_dir);
+    }
+
     compile(bpf_source_file, binary_file.as_deref(), out_dir)
 }
 
-fn handle_sign(args: &Action) -> Result<(), String> {
+fn handle_sign(args: &Action, use_env: bool) -> Result<(), String> {
     let Action::Sign {
         host_network_interface,
         board_name,
@@ -70,6 +79,19 @@ fn handle_sign(args: &Action) -> Result<(), String> {
         return Err(format!("Invalid subcommand args: {:?}", args));
     };
 
+    if use_env {
+        let env = load_env();
+
+        return sign(
+            &env.host_net_if,
+            &env.board_name,
+            &env.coap_root_dir,
+            binary_name,
+            *suit_storage_slot as usize,
+            None,
+        );
+    }
+
     sign(
         host_network_interface,
         board_name,
@@ -80,7 +102,7 @@ fn handle_sign(args: &Action) -> Result<(), String> {
     )
 }
 
-async fn handle_pull(args: &Action) -> Result<(), String> {
+async fn handle_pull(args: &Action, use_env: bool) -> Result<(), String> {
     let Action::Pull {
         riot_ipv6_addr,
         host_ipv6_addr,
@@ -92,6 +114,19 @@ async fn handle_pull(args: &Action) -> Result<(), String> {
         return Err(format!("Invalid subcommand args: {:?}", args));
     };
 
+    if use_env {
+        let env = load_env();
+
+        return pull(
+            &env.riot_instance_ip,
+            &env.host_ip,
+            suit_manifest,
+            &env.host_net_if,
+            &env.riot_instance_net_if,
+        )
+        .await;
+    }
+
     pull(
         riot_ipv6_addr,
         host_ipv6_addr,
@@ -101,7 +136,7 @@ async fn handle_pull(args: &Action) -> Result<(), String> {
     )
     .await
 }
-async fn handle_execute(args: &Action) -> Result<(), String> {
+async fn handle_execute(args: &Action, use_env: bool) -> Result<(), String> {
     let Action::Execute {
         riot_ipv6_addr,
         target,
@@ -119,16 +154,30 @@ async fn handle_execute(args: &Action) -> Result<(), String> {
     let execution_model = ExecutionModel::from_str(execution_model)?;
     let binary_file_layout = binary_layout.as_str().parse::<BinaryFileLayout>()?;
 
-    let response = execute(
-        riot_ipv6_addr,
-        target_vm,
-        binary_file_layout,
-        *suit_storage_slot as usize,
-        host_network_interface,
-        execution_model,
-        helper_indices,
-    )
-    .await?;
+    let response = if use_env {
+        let env = load_env();
+        execute(
+            &env.riot_instance_ip,
+            target_vm,
+            binary_file_layout,
+            *suit_storage_slot as usize,
+            &env.host_net_if,
+            execution_model,
+            helper_indices,
+        )
+        .await?
+    } else {
+        execute(
+            riot_ipv6_addr,
+            target_vm,
+            binary_file_layout,
+            *suit_storage_slot as usize,
+            host_network_interface,
+            execution_model,
+            helper_indices,
+        )
+        .await?
+    };
 
     println!("Response received: \n{}", response);
 
@@ -154,10 +203,15 @@ fn handle_postprocessing(args: &Action) -> Result<(), String> {
         "a.bin"
     };
 
-    apply_postprocessing(source_object_file, binary_layout, file_name, helper_indices.to_vec())
+    apply_postprocessing(
+        source_object_file,
+        binary_layout,
+        file_name,
+        helper_indices.to_vec(),
+    )
 }
 
-async fn handle_deploy(args: &Action) -> Result<(), String> {
+async fn handle_deploy(args: &Action, use_env: bool) -> Result<(), String> {
     let Action::Deploy {
         bpf_source_file,
         out_dir,
@@ -176,6 +230,26 @@ async fn handle_deploy(args: &Action) -> Result<(), String> {
     };
 
     let binary_layout = binary_layout.as_str().parse::<BinaryFileLayout>()?;
+
+    if use_env {
+        let env = environment::load_env();
+
+        return deploy(
+            bpf_source_file,
+            out_dir,
+            binary_layout,
+            &env.coap_root_dir,
+            *suit_storage_slot as usize,
+            &env.riot_instance_net_if,
+            &env.riot_instance_ip,
+            &env.host_net_if,
+            &env.host_ip,
+            &env.board_name,
+            None,
+            helper_indices.to_vec(),
+        )
+        .await;
+    }
 
     deploy(
         bpf_source_file,

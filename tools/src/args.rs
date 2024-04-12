@@ -127,12 +127,14 @@ pub enum Action {
         suit_storage_slot: i32,
 
         /// IPv6 address of the RIOT instance.
-        #[arg(long)]
+        // We set the default value so that the argument doesn't need to be specified when
+        // we use the .env configuration.
+        #[arg(long, default_value_t = String::from(""))]
         riot_ipv6_addr: String,
 
         /// IPv6 address of the desktop machine hosting the CoAP fileserver with
         /// the binary blob and SUIT manifest.
-        #[arg(long)]
+        #[arg(long, default_value_t = String::from(""))]
         host_ipv6_addr: String,
 
         /// Controlls which indices of helpers are made available to the VM
@@ -186,4 +188,7 @@ pub struct Args {
     /// Pull, Execute.
     #[command(subcommand)]
     pub command: Action,
+
+    #[arg(long, default_value_t = false)]
+    pub use_env: bool,
 }
