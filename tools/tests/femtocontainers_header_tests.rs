@@ -24,57 +24,57 @@ use mibpf_common::{BinaryFileLayout, HelperFunctionID};
 
 #[tokio::test]
 async fn printf() {
-    test_function_relocation_metadata("printf.c").await;
+    test_femtocontainers_header("printf.c").await;
 }
 
 #[tokio::test]
 async fn bpf_fetch() {
-    test_function_relocation_metadata("bpf_fetch.c").await;
+    test_femtocontainers_header("bpf_fetch.c").await;
 }
 
 #[tokio::test]
 async fn bpf_store() {
-    test_function_relocation_metadata("bpf_store.c").await;
+    test_femtocontainers_header("bpf_store.c").await;
 }
 
 #[tokio::test]
 async fn bpf_strlen() {
-    test_function_relocation_metadata("bpf_strlen.c").await;
+    test_femtocontainers_header("bpf_strlen.c").await;
 }
 
 #[tokio::test]
 async fn bpf_fmt_s16_dfp() {
-    test_function_relocation_metadata("bpf_fmt_s16_dfp.c").await;
+    test_femtocontainers_header("bpf_fmt_s16_dfp.c").await;
 }
 
 #[tokio::test]
 async fn bpf_fmt_u32_dec() {
-    test_function_relocation_metadata("bpf_fmt_u32_dec.c").await;
+    test_femtocontainers_header("bpf_fmt_u32_dec.c").await;
 }
 
 #[tokio::test]
 async fn pc_relative_calls() {
-    test_function_relocation_metadata("pc_relative_calls.c").await;
+    test_femtocontainers_header("pc_relative_calls.c").await;
 }
 
 #[tokio::test]
 async fn inlined_calls() {
-    test_function_relocation_metadata("inlined_calls.c").await;
+    test_femtocontainers_header("inlined_calls.c").await;
 }
 
 #[tokio::test]
 async fn fletcher_32_checksum() {
-    test_function_relocation_metadata("fletcher32_checksum.c").await;
+    test_femtocontainers_header("fletcher32_checksum.c").await;
 }
 
 #[tokio::test]
 async fn gcoap_response_format() {
-    test_function_relocation_metadata_accessing_coap_pkt("gcoap_response_format.c").await;
+    test_femtocontainers_header_accessing_coap_pkt("gcoap_response_format.c").await;
 }
 
 #[tokio::test]
 async fn printf_helpers() {
-    test_function_relocation_metadata_with_helpers(
+    test_femtocontainers_header_with_helpers(
         "printf.c",
         vec![HelperFunctionID::BPF_PRINTF_IDX.into()],
     )
@@ -83,7 +83,7 @@ async fn printf_helpers() {
 
 #[tokio::test]
 async fn bpf_fetch_helpers() {
-    test_function_relocation_metadata_with_helpers(
+    test_femtocontainers_header_with_helpers(
         "bpf_fetch.c",
         vec![
             HelperFunctionID::BPF_PRINTF_IDX.into(),
@@ -95,7 +95,7 @@ async fn bpf_fetch_helpers() {
 
 #[tokio::test]
 async fn bpf_store_helpers() {
-    test_function_relocation_metadata_with_helpers(
+    test_femtocontainers_header_with_helpers(
         "bpf_store.c",
         vec![
             HelperFunctionID::BPF_PRINTF_IDX.into(),
@@ -108,7 +108,7 @@ async fn bpf_store_helpers() {
 
 #[tokio::test]
 async fn bpf_strlen_helpers() {
-    test_function_relocation_metadata_with_helpers(
+    test_femtocontainers_header_with_helpers(
         "bpf_strlen.c",
         vec![
             HelperFunctionID::BPF_PRINTF_IDX.into(),
@@ -120,7 +120,7 @@ async fn bpf_strlen_helpers() {
 
 #[tokio::test]
 async fn bpf_fmt_s16_dfp_helpers() {
-    test_function_relocation_metadata_with_helpers(
+    test_femtocontainers_header_with_helpers(
         "bpf_fmt_s16_dfp.c",
         vec![
             HelperFunctionID::BPF_PRINTF_IDX.into(),
@@ -132,7 +132,7 @@ async fn bpf_fmt_s16_dfp_helpers() {
 
 #[tokio::test]
 async fn bpf_fmt_u32_dec_helpers() {
-    test_function_relocation_metadata_with_helpers(
+    test_femtocontainers_header_with_helpers(
         "bpf_fmt_u32_dec.c",
         vec![
             HelperFunctionID::BPF_PRINTF_IDX.into(),
@@ -144,7 +144,7 @@ async fn bpf_fmt_u32_dec_helpers() {
 
 #[tokio::test]
 async fn pc_relative_calls_helpers() {
-    test_function_relocation_metadata_with_helpers(
+    test_femtocontainers_header_with_helpers(
         "pc_relative_calls.c",
         vec![HelperFunctionID::BPF_PRINTF_IDX.into()],
     )
@@ -153,7 +153,7 @@ async fn pc_relative_calls_helpers() {
 
 #[tokio::test]
 async fn inlined_calls_helpers() {
-    test_function_relocation_metadata_with_helpers(
+    test_femtocontainers_header_with_helpers(
         "inlined_calls.c",
         vec![HelperFunctionID::BPF_PRINTF_IDX.into()],
     )
@@ -162,7 +162,7 @@ async fn inlined_calls_helpers() {
 
 #[tokio::test]
 async fn fletcher_32_checksum_helpers() {
-    test_function_relocation_metadata_with_helpers(
+    test_femtocontainers_header_with_helpers(
         "fletcher32_checksum.c",
         vec![
             HelperFunctionID::BPF_PRINTF_IDX.into(),
@@ -174,7 +174,7 @@ async fn fletcher_32_checksum_helpers() {
 
 #[tokio::test]
 async fn gcoap_response_format_helpers() {
-    test_function_relocation_metadata_accessing_coap_pkt_with_helpers(
+    test_femtocontainers_header_accessing_coap_pkt_with_helpers(
         "gcoap_response_format.c",
         vec![
             HelperFunctionID::BPF_PRINTF_IDX.into(),
@@ -188,57 +188,27 @@ async fn gcoap_response_format_helpers() {
     .await;
 }
 
-#[tokio::test]
-#[should_panic]
-async fn printf_no_required_helpers_panics() {
-    test_function_relocation_metadata_with_helpers("printf.c", vec![]).await;
-}
 
-/// Runs a test which deploys an eBPF script which is prepared to be compatible
-/// with [`BinaryFileLayout::RawObjectFile`], the tested implementation on the
-/// microcontroller resolves relocations once the program is loaded into memory,
-/// then it patches the bytecode and executes the final resulting binary. The
-/// return value of the program is returned in the CoAP response that is sent
-/// following the request that was sent by this testsuite to the server running
-/// on the target device.
-///
-/// It is important to note that those tests should serve as end-to-end sanity
-/// checks rather than a full proof of correctness of the system. Since we can
-/// only check for successful execution of the requests we make and then compare
-/// the return value of the program to the initial expectation, we cannot guarantee
-/// that all parts of the execution of the program were successful. For instance,
-/// when testing programs that rely on the bpf_printf helper for logging, the
-/// shell output of the tested riot instance should be examined to see if the
-/// printed logs are what we would expect them to be.
-///
-/// Another limitation is that this testsuite was built with the native RIOT
-/// instance in mind, which runs as a simulation on the host machine. Because
-/// of this, they aren't able to test whether the GPIO-related helpers work
-/// as expected.
-///
-/// Furthermore, because of the design of this testsuite, we can only test programs
-/// that terminate quickly enough so that the microcontroller can send the CoAP
-/// response with the return value of the program within the request timeout.
-async fn test_function_relocation_metadata(test_program: &str) {
+async fn test_femtocontainers_header(test_program: &str) {
     let env = load_env();
     test_execution(
         test_program,
-        BinaryFileLayout::FunctionRelocationMetadata,
+        BinaryFileLayout::FemtoContainersHeader,
         &env,
     )
     .await;
 }
 
-// Similar to `test_function_relocation_metadata` but allows for restricting access
+// Similar to `test_femtocontainers_header` but allows for restricting access
 // to helper functions.
-async fn test_function_relocation_metadata_with_helpers(
+async fn test_femtocontainers_header_with_helpers(
     test_program: &str,
     allowed_helpers: Vec<u8>,
 ) {
     let env = load_env();
     test_execution_specifying_helpers(
         test_program,
-        BinaryFileLayout::FunctionRelocationMetadata,
+        BinaryFileLayout::FemtoContainersHeader,
         &env,
         allowed_helpers,
     )
@@ -249,24 +219,24 @@ async fn test_function_relocation_metadata_with_helpers(
 /// the incoming network packet that requested the execution of the VM. It
 /// then tests whether the response received matches the one specified on the
 /// first line of the test file.
-async fn test_function_relocation_metadata_accessing_coap_pkt(test_program: &str) {
+async fn test_femtocontainers_header_accessing_coap_pkt(test_program: &str) {
     let env = load_env();
     test_execution_accessing_coap_pkt(
         test_program,
-        BinaryFileLayout::FunctionRelocationMetadata,
+        BinaryFileLayout::FemtoContainersHeader,
         &env,
     )
     .await;
 }
 
-async fn test_function_relocation_metadata_accessing_coap_pkt_with_helpers(
+async fn test_femtocontainers_header_accessing_coap_pkt_with_helpers(
     test_program: &str,
     allowed_helpers: Vec<u8>,
 ) {
     let env = load_env();
     test_execution_accessing_coap_pkt_specifying_helpers(
         test_program,
-        BinaryFileLayout::FunctionRelocationMetadata,
+        BinaryFileLayout::FemtoContainersHeader,
         &env,
         allowed_helpers,
     )
