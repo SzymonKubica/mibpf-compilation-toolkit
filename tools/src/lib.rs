@@ -1,3 +1,7 @@
+//! This crate provides utility functions for compiling, deploying and executing
+//! eBPF programs on embedded devices running RIOT-OS with the mibpf implementation
+//! of the virtual machine.
+
 extern crate clap;
 extern crate coap;
 extern crate env_logger;

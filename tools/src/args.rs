@@ -189,6 +189,9 @@ pub struct Args {
     #[command(subcommand)]
     pub command: Action,
 
+    /// Use the .env file to configure missing arguments. Defaults to sourcing
+    /// the ".env" file, the loaded file can be overridden by setting the
+    /// environment variable "DOTENV".
     #[arg(long, default_value_t = false)]
     pub use_env: bool,
 }
