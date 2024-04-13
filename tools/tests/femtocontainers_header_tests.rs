@@ -2,11 +2,11 @@ mod common;
 
 use common::{
     test_execution, test_execution_accessing_coap_pkt,
-    test_execution_accessing_coap_pkt_specifying_helpers, test_execution_specifying_helpers,
+    test_execution_femtocontainer_vm, test_execution_accessing_coap_pkt_femtocontainer_vm,
 };
 use mibpf_tools::load_env;
 
-use mibpf_common::{BinaryFileLayout, HelperFunctionID};
+use mibpf_common::BinaryFileLayout;
 
 // This module contains end-to-end integration tests of the compile-upload-
 // execute workflow of the eBPF programs on microcontrollers. It is recommended
@@ -18,9 +18,17 @@ use mibpf_common::{BinaryFileLayout, HelperFunctionID};
 // and compares it to the actual output returned in the response from the RIOT
 // instance running the mibpf server.
 //
-// TODO: write up setup instructions
-// TODO: allow for specifying environment externally
-// TODO: update this doc to make it specific to the tested binary file layout.
+// The tests in this module are specifically for the `FemtoContainersHeader`
+// binary file layout, which should be supported by both the rbpf VM implementation
+// when using the `FemtoContainersHeader` interpreter version and the original
+// version of the VM proposed by FemtoContainers. Because of this, the tests
+// in this file always run on both implementations of the VM and can be used as
+// a regression that the new functionality is fully backwards-compatible.
+//
+// Some notable limitations of the Femto-Containers VM implementation:
+//
+// - no support for PC relative calls
+// - a smaller set of supported helpers (no bpf_strlen, gpio, saul ...)
 
 #[tokio::test]
 async fn printf() {
@@ -38,11 +46,6 @@ async fn bpf_store() {
 }
 
 #[tokio::test]
-async fn bpf_strlen() {
-    test_femtocontainers_header("bpf_strlen.c").await;
-}
-
-#[tokio::test]
 async fn bpf_fmt_s16_dfp() {
     test_femtocontainers_header("bpf_fmt_s16_dfp.c").await;
 }
@@ -53,141 +56,19 @@ async fn bpf_fmt_u32_dec() {
 }
 
 #[tokio::test]
-async fn pc_relative_calls() {
-    test_femtocontainers_header("pc_relative_calls.c").await;
-}
-
-#[tokio::test]
 async fn inlined_calls() {
     test_femtocontainers_header("inlined_calls.c").await;
 }
 
 #[tokio::test]
 async fn fletcher_32_checksum() {
-    test_femtocontainers_header("fletcher32_checksum.c").await;
+    test_femtocontainers_header("fletcher32_checksum_no_strlen.c").await;
 }
 
 #[tokio::test]
 async fn gcoap_response_format() {
     test_femtocontainers_header_accessing_coap_pkt("gcoap_response_format.c").await;
 }
-
-#[tokio::test]
-async fn printf_helpers() {
-    test_femtocontainers_header_with_helpers(
-        "printf.c",
-        vec![HelperFunctionID::BPF_PRINTF_IDX.into()],
-    )
-    .await;
-}
-
-#[tokio::test]
-async fn bpf_fetch_helpers() {
-    test_femtocontainers_header_with_helpers(
-        "bpf_fetch.c",
-        vec![
-            HelperFunctionID::BPF_PRINTF_IDX.into(),
-            HelperFunctionID::BPF_FETCH_GLOBAL_IDX.into(),
-        ],
-    )
-    .await;
-}
-
-#[tokio::test]
-async fn bpf_store_helpers() {
-    test_femtocontainers_header_with_helpers(
-        "bpf_store.c",
-        vec![
-            HelperFunctionID::BPF_PRINTF_IDX.into(),
-            HelperFunctionID::BPF_STORE_GLOBAL_IDX.into(),
-            HelperFunctionID::BPF_FETCH_GLOBAL_IDX.into(),
-        ],
-    )
-    .await;
-}
-
-#[tokio::test]
-async fn bpf_strlen_helpers() {
-    test_femtocontainers_header_with_helpers(
-        "bpf_strlen.c",
-        vec![
-            HelperFunctionID::BPF_PRINTF_IDX.into(),
-            HelperFunctionID::BPF_STRLEN_IDX.into(),
-        ],
-    )
-    .await;
-}
-
-#[tokio::test]
-async fn bpf_fmt_s16_dfp_helpers() {
-    test_femtocontainers_header_with_helpers(
-        "bpf_fmt_s16_dfp.c",
-        vec![
-            HelperFunctionID::BPF_PRINTF_IDX.into(),
-            HelperFunctionID::BPF_FMT_S16_DFP_IDX.into(),
-        ],
-    )
-    .await;
-}
-
-#[tokio::test]
-async fn bpf_fmt_u32_dec_helpers() {
-    test_femtocontainers_header_with_helpers(
-        "bpf_fmt_u32_dec.c",
-        vec![
-            HelperFunctionID::BPF_PRINTF_IDX.into(),
-            HelperFunctionID::BPF_FMT_U32_DEC_IDX.into(),
-        ],
-    )
-    .await;
-}
-
-#[tokio::test]
-async fn pc_relative_calls_helpers() {
-    test_femtocontainers_header_with_helpers(
-        "pc_relative_calls.c",
-        vec![HelperFunctionID::BPF_PRINTF_IDX.into()],
-    )
-    .await;
-}
-
-#[tokio::test]
-async fn inlined_calls_helpers() {
-    test_femtocontainers_header_with_helpers(
-        "inlined_calls.c",
-        vec![HelperFunctionID::BPF_PRINTF_IDX.into()],
-    )
-    .await;
-}
-
-#[tokio::test]
-async fn fletcher_32_checksum_helpers() {
-    test_femtocontainers_header_with_helpers(
-        "fletcher32_checksum.c",
-        vec![
-            HelperFunctionID::BPF_PRINTF_IDX.into(),
-            HelperFunctionID::BPF_STRLEN_IDX.into(),
-        ],
-    )
-    .await;
-}
-
-#[tokio::test]
-async fn gcoap_response_format_helpers() {
-    test_femtocontainers_header_accessing_coap_pkt_with_helpers(
-        "gcoap_response_format.c",
-        vec![
-            HelperFunctionID::BPF_PRINTF_IDX.into(),
-            HelperFunctionID::BPF_COAP_ADD_FORMAT_IDX.into(),
-            HelperFunctionID::BPF_COAP_OPT_FINISH_IDX.into(),
-            HelperFunctionID::BPF_MEMCPY_IDX.into(),
-            HelperFunctionID::BPF_GCOAP_RESP_INIT_IDX.into(),
-            HelperFunctionID::BPF_FMT_S16_DFP_IDX.into(),
-        ],
-    )
-    .await;
-}
-
 
 async fn test_femtocontainers_header(test_program: &str) {
     let env = load_env();
@@ -197,20 +78,10 @@ async fn test_femtocontainers_header(test_program: &str) {
         &env,
     )
     .await;
-}
-
-// Similar to `test_femtocontainers_header` but allows for restricting access
-// to helper functions.
-async fn test_femtocontainers_header_with_helpers(
-    test_program: &str,
-    allowed_helpers: Vec<u8>,
-) {
-    let env = load_env();
-    test_execution_specifying_helpers(
+    test_execution_femtocontainer_vm(
         test_program,
         BinaryFileLayout::FemtoContainersHeader,
         &env,
-        allowed_helpers,
     )
     .await;
 }
@@ -227,18 +98,12 @@ async fn test_femtocontainers_header_accessing_coap_pkt(test_program: &str) {
         &env,
     )
     .await;
-}
 
-async fn test_femtocontainers_header_accessing_coap_pkt_with_helpers(
-    test_program: &str,
-    allowed_helpers: Vec<u8>,
-) {
-    let env = load_env();
-    test_execution_accessing_coap_pkt_specifying_helpers(
+    test_execution_accessing_coap_pkt_femtocontainer_vm(
         test_program,
         BinaryFileLayout::FemtoContainersHeader,
         &env,
-        allowed_helpers,
     )
     .await;
 }
+

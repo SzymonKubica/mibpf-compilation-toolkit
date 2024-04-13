@@ -1,4 +1,4 @@
-use mibpf_tools::{self, execute, deploy, Environment};
+use mibpf_tools::{self, deploy, execute, Environment};
 
 use mibpf_common::{BinaryFileLayout, ExecutionModel, TargetVM};
 use serde::Deserialize;
@@ -10,12 +10,37 @@ pub async fn test_execution(
 ) {
     // By default all helpers are allowed
     let available_helpers = (0..128).into_iter().collect::<Vec<u8>>();
-    test_execution_specifying_helpers(test_program, layout, environment, available_helpers).await;
+    test_execution_specifying_helpers(
+        test_program,
+        layout,
+        TargetVM::Rbpf,
+        environment,
+        available_helpers,
+    )
+    .await;
+}
+
+pub async fn test_execution_femtocontainer_vm(
+    test_program: &str,
+    layout: BinaryFileLayout,
+    environment: &Environment,
+) {
+    // By default all helpers are allowed
+    let available_helpers = (0..128).into_iter().collect::<Vec<u8>>();
+    test_execution_specifying_helpers(
+        test_program,
+        layout,
+        TargetVM::FemtoContainer,
+        environment,
+        available_helpers,
+    )
+    .await;
 }
 
 pub async fn test_execution_specifying_helpers(
     test_program: &str,
     layout: BinaryFileLayout,
+    target_vm: TargetVM,
     environment: &Environment,
     available_helpers: Vec<u8>,
 ) {
@@ -34,7 +59,7 @@ pub async fn test_execution_specifying_helpers(
 
     // Then we request execution and check that the return value is what we
     // expected
-    let execution_result = execute_deployed_program(0, layout, environment).await;
+    let execution_result = execute_deployed_program(0, layout, target_vm, environment).await;
     if let Err(string) = &execution_result {
         println!("{}", string);
     }
@@ -45,13 +70,11 @@ pub async fn test_execution_specifying_helpers(
     assert!(return_value == expected_return);
 }
 
-
 pub async fn benchmark_execution(
     test_program: &str,
     layout: BinaryFileLayout,
     environment: &Environment,
 ) {
-
     // By default all helpers are allowed
     let available_helpers = (0..128).into_iter().collect::<Vec<u8>>();
     // We first deploy the program on the tested microcontroller
@@ -69,8 +92,6 @@ pub async fn benchmark_execution(
 
     // when executing a different helper encoding is used.
 
-
-
     let available_helpers = (0..24).into_iter().collect::<Vec<u8>>();
     let response = execute(
         &environment.riot_instance_ip,
@@ -81,7 +102,8 @@ pub async fn benchmark_execution(
         ExecutionModel::Benchmark,
         &available_helpers,
     )
-    .await.unwrap();
+    .await
+    .unwrap();
     // {"execution_time": 10, "result": 0}
     #[derive(Deserialize)]
     struct Response {
@@ -95,9 +117,26 @@ pub async fn benchmark_execution(
 
     println!("Response: {}", response);
     let response = serde_json::from_str::<Response>(&response)
-        .map_err(|e| format!("Failed to parse the json response: {}", e)).unwrap();
+        .map_err(|e| format!("Failed to parse the json response: {}", e))
+        .unwrap();
 }
 
+pub async fn test_execution_accessing_coap_pkt_femtocontainer_vm(
+    test_program: &str,
+    layout: BinaryFileLayout,
+    environment: &Environment,
+) {
+    // By default all helpers are allowed
+    let available_helpers = (0..128).into_iter().collect::<Vec<u8>>();
+    test_execution_accessing_coap_pkt_specifying_helpers(
+        test_program,
+        layout,
+        TargetVM::FemtoContainer,
+        environment,
+        available_helpers,
+    )
+    .await
+}
 
 pub async fn test_execution_accessing_coap_pkt(
     test_program: &str,
@@ -109,6 +148,7 @@ pub async fn test_execution_accessing_coap_pkt(
     test_execution_accessing_coap_pkt_specifying_helpers(
         test_program,
         layout,
+        TargetVM::Rbpf,
         environment,
         available_helpers,
     )
@@ -118,6 +158,7 @@ pub async fn test_execution_accessing_coap_pkt(
 pub async fn test_execution_accessing_coap_pkt_specifying_helpers(
     test_program: &str,
     layout: BinaryFileLayout,
+    target_vm: TargetVM,
     environment: &Environment,
     available_helpers: Vec<u8>,
 ) {
@@ -136,7 +177,7 @@ pub async fn test_execution_accessing_coap_pkt_specifying_helpers(
 
     // Then we request execution and check that the return value is what we
     // expected
-    let execution_result = execute_deployed_program_on_coap(0, layout, environment).await;
+    let execution_result = execute_deployed_program_on_coap(0, layout, target_vm, environment).await;
     if let Err(string) = &execution_result {
         println!("{}", string);
     }
@@ -225,13 +266,14 @@ pub fn extract_expected_return(file_name: &str) -> i32 {
 pub async fn execute_deployed_program_on_coap(
     suit_storage_slot: usize,
     layout: BinaryFileLayout,
+    target_vm: TargetVM,
     environment: &Environment,
 ) -> Result<String, String> {
     // We allow all helpers
     let available_helpers = (0..24).into_iter().collect::<Vec<u8>>();
     let response = execute(
         &environment.riot_instance_ip,
-        TargetVM::Rbpf,
+        target_vm,
         layout,
         suit_storage_slot,
         &environment.host_net_if,
@@ -249,12 +291,13 @@ pub async fn execute_deployed_program_on_coap(
 pub async fn execute_deployed_program_specifying_helpers(
     suit_storage_slot: usize,
     layout: BinaryFileLayout,
+    target_vm: TargetVM,
     environment: &Environment,
     available_helpers: Vec<u8>,
 ) -> Result<i32, String> {
     let response = execute(
         &environment.riot_instance_ip,
-        TargetVM::Rbpf,
+        target_vm,
         layout,
         suit_storage_slot,
         &environment.host_net_if,
@@ -283,6 +326,7 @@ pub async fn execute_deployed_program_specifying_helpers(
 pub async fn execute_deployed_program(
     suit_storage_slot: usize,
     layout: BinaryFileLayout,
+    target_vm: TargetVM,
     environment: &Environment,
 ) -> Result<i32, String> {
     // When sending a request to execute, we can only specify up to 24 helpers
@@ -292,6 +336,7 @@ pub async fn execute_deployed_program(
     execute_deployed_program_specifying_helpers(
         suit_storage_slot,
         layout,
+        target_vm,
         environment,
         available_helpers,
     )
