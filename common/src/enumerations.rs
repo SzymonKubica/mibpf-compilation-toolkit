@@ -114,7 +114,7 @@ impl FromStr for TargetVM {
         match s {
             "rBPF" => Ok(TargetVM::Rbpf),
             "FemtoContainer" => Ok(TargetVM::FemtoContainer),
-            _ => Err(String::from(s)),
+            _ => Err(format!("Unknown target VM: {}", s))
         }
     }
 }
