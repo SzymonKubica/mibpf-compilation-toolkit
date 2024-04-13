@@ -9,7 +9,7 @@ use goblin::{
     elf::{Elf, Reloc},
     elf64::sym::{STB_GLOBAL, STT_FUNC, STT_OBJECT, STT_SECTION},
 };
-use log::{debug, info};
+use log::debug;
 
 use crate::{
     common::{
@@ -178,7 +178,7 @@ pub fn assemble_binary_specifying_helpers(
 /// the map from the name of the additional rodata section to the offset
 /// to it relative to the original rodata section. This map is returned from this
 /// functio.
-fn append_string_literals<'a>(
+pub fn append_string_literals<'a>(
     rodata: &mut Vec<u8>,
     binary: &Elf<'a>,
     buffer: &[u8],
@@ -261,7 +261,7 @@ fn find_relocated_calls(binary: &Elf<'_>, buffer: &[u8]) -> Vec<RelocatedCall> {
 /// see [`Lddw`]) that indicate that the particular load instruction is supposed
 /// to target the .rodata or .data section. This is coupled with the implementation
 /// of the VM and not compatible with the default eBPF standard.
-fn resolve_rodata_relocations(
+pub fn resolve_rodata_relocations(
     text: &mut Vec<u8>,
     binary: &Elf<'_>,
     buffer: &[u8],
@@ -299,7 +299,7 @@ fn resolve_rodata_relocations(
     }
 }
 
-fn patch_text(
+pub fn patch_text(
     text: &mut [u8],
     binary: &Elf<'_>,
     reloc: Reloc,

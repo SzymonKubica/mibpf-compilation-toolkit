@@ -24,17 +24,14 @@ use alloc::{
     vec::Vec,
 };
 use goblin::{
-    elf::{Elf, Reloc},
-    elf64::sym::{STB_GLOBAL, STT_FUNC, STT_OBJECT},
+    elf::Elf,
+    elf64::sym::{STB_GLOBAL, STT_FUNC},
 };
 use log::debug;
 
 use crate::{
-    common::{
-        find_relocations, get_section_bytes, get_section_offset, round_section_length, Symbol,
-        LDDW_OPCODE,
-    },
-    model::Lddw,
+    common::{get_section_bytes, round_section_length, Symbol},
+    extended_relocations::{append_string_literals, resolve_rodata_relocations},
 };
 
 // In this module a prefix 'FC' is used to indicate that the structs and constants
@@ -118,6 +115,12 @@ pub fn assemble_femtocontainer_binary(program: &[u8]) -> Result<Vec<u8>, String>
     let mut data: Vec<u8> = get_section_bytes(".data", &binary, &program);
     let mut rodata: Vec<u8> = get_section_bytes(".rodata", &binary, &program);
 
+    // Now handle all string literals that aren't placed in .rodata
+    // section by default. We need to append them to the .rodata section
+    // and maintain the information about the offsets at which they are
+    // stored so that we can relocate loads from them later on.
+    let str_section_offsets = append_string_literals(&mut rodata, &binary, &program);
+
     // Now we need to collect all global functions and append their names
     // to the rodata section. We also need to maintain the information
     // about the offsets at which the function names are stored.
@@ -125,7 +128,7 @@ pub fn assemble_femtocontainer_binary(program: &[u8]) -> Result<Vec<u8>, String>
     // script used by FemtoContainers. It isn't actually used by their VM.
     let symbol_structs: Vec<Symbol> = extract_function_symbols(&mut rodata, &binary);
 
-    resolve_rodata_relocations(&mut text, &binary, &program);
+    resolve_rodata_relocations(&mut text, &binary, &program, &str_section_offsets);
 
     round_section_length(&mut data);
     round_section_length(&mut rodata);
@@ -173,84 +176,4 @@ fn extract_function_symbols(rodata: &mut Vec<u8>, binary: &Elf<'_>) -> Vec<Symbo
         }
     }
     symbol_structs
-}
-
-/// Responsible for handling relocations for the read-only data used by the program.
-/// It works by introducing two custom load-double-word (LDDW) instructions (
-/// see [`Lddw`]) that indicate that the particular load instruction is supposed
-/// to target the .rodata or .data section. This is coupled with the implementation
-/// of the VM and not compatible with the default eBPF standard.
-/// In case of femtocontainers we only patch relocations that are inside of the
-/// text section.
-fn resolve_rodata_relocations(text: &mut Vec<u8>, binary: &Elf<'_>, buffer: &[u8]) {
-    let relocations = find_relocations(binary, buffer);
-    let text_section_offset = get_section_offset(".text", binary, buffer).unwrap();
-    for (offset, relocation) in relocations {
-        if offset as u64 != text_section_offset  {
-            continue;
-        }
-        if let Some(symbol) = binary.syms.get(relocation.r_sym) {
-            let section = binary.section_headers.get(symbol.st_shndx).unwrap();
-            let section_name = binary.strtab.get_at(section.sh_name).unwrap();
-            match symbol.st_type() {
-                STT_SECTION => {
-                    debug!(
-                        "Relocation at instruction {} for section {} at {}",
-                        relocation.r_offset, section_name, symbol.st_value
-                    )
-                }
-                STT_FUNC => continue, // We don't patch for functions
-                _ => {
-                    let symbol_name = binary.strtab.get_at(symbol.st_name).unwrap();
-                    debug!(
-                        "Relocation at instruction {} for symbol {} in {} at {}",
-                        relocation.r_offset, symbol_name, section_name, symbol.st_value
-                    )
-                }
-            }
-        }
-
-        patch_text(text, binary, relocation);
-    }
-}
-
-fn patch_text(text: &mut [u8], binary: &Elf<'_>, reloc: Reloc) {
-    debug!("Patching text for relocation symbol: {:?}", reloc);
-    let symbol = binary.syms.get(reloc.r_sym).unwrap();
-    let section = binary.section_headers.get(symbol.st_shndx).unwrap();
-    let section_name = binary.strtab.get_at(section.sh_name).unwrap();
-    let mut offset = 0;
-
-    if symbol.st_type() == STT_OBJECT {
-        debug!("No patching is performed for function calls and sections.");
-        return;
-    }
-    offset = symbol.st_value as usize;
-
-    // We only patch LDDW instructions
-    if text[reloc.r_offset as usize] != LDDW_OPCODE as u8 {
-        debug!("No LDDW instruction at {}", reloc.r_offset);
-        return;
-    }
-
-    // Change the opcode of the lddwd instruction so that it uses the special
-    // instructions that are understood by the VM.
-    let opcode = if section_name.contains(".rodata.str") {
-        FC_LDDWR_OPCODE
-    } else {
-        FC_LDDWD_OPCODE
-    };
-
-    // We instantiate the instruction struct to modify it
-    let instr_bytes = &text[reloc.r_offset as usize..reloc.r_offset as usize + 16];
-    debug!(
-        "Replacing {:?} at {} with {} at {}",
-        instr_bytes, reloc.r_offset, opcode, reloc.r_offset
-    );
-
-    let mut instr: Lddw = Lddw::from(instr_bytes);
-    instr.opcode = opcode as u8;
-    instr.immediate_l += offset as u32;
-
-    text[reloc.r_offset as usize..reloc.r_offset as usize + 16].copy_from_slice((&instr).into());
 }
