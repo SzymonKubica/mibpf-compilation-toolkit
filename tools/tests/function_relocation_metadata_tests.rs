@@ -6,7 +6,7 @@ use common::{
 };
 use mibpf_tools::load_env;
 
-use mibpf_common::{BinaryFileLayout, HelperFunctionID};
+use mibpf_common::{BinaryFileLayout, HelperFunctionID, TargetVM};
 
 // This module contains end-to-end integration tests of the compile-upload-
 // execute workflow of the eBPF programs on microcontrollers. It is recommended
@@ -239,6 +239,7 @@ async fn test_function_relocation_metadata_with_helpers(
     test_execution_specifying_helpers(
         test_program,
         BinaryFileLayout::FunctionRelocationMetadata,
+        TargetVM::Rbpf,
         &env,
         allowed_helpers,
     )
@@ -267,6 +268,7 @@ async fn test_function_relocation_metadata_accessing_coap_pkt_with_helpers(
     test_execution_accessing_coap_pkt_specifying_helpers(
         test_program,
         BinaryFileLayout::FunctionRelocationMetadata,
+        TargetVM::Rbpf,
         &env,
         allowed_helpers,
     )

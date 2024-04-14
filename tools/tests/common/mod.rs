@@ -1,6 +1,7 @@
+use enum_iterator::all;
 use mibpf_tools::{self, deploy, execute, Environment};
 
-use mibpf_common::{BinaryFileLayout, ExecutionModel, TargetVM};
+use mibpf_common::{BinaryFileLayout, ExecutionModel, TargetVM, HelperFunctionID};
 use serde::Deserialize;
 
 pub async fn test_execution(
@@ -9,7 +10,7 @@ pub async fn test_execution(
     environment: &Environment,
 ) {
     // By default all helpers are allowed
-    let available_helpers = (0..128).into_iter().collect::<Vec<u8>>();
+    let available_helpers = all::<HelperFunctionID>().map(|e| e as u8).collect::<Vec<u8>>();
     test_execution_specifying_helpers(
         test_program,
         layout,
@@ -26,7 +27,7 @@ pub async fn test_execution_femtocontainer_vm(
     environment: &Environment,
 ) {
     // By default all helpers are allowed
-    let available_helpers = (0..128).into_iter().collect::<Vec<u8>>();
+    let available_helpers = all::<HelperFunctionID>().map(|e| e as u8).collect::<Vec<u8>>();
     test_execution_specifying_helpers(
         test_program,
         layout,
@@ -76,7 +77,7 @@ pub async fn benchmark_execution(
     environment: &Environment,
 ) {
     // By default all helpers are allowed
-    let available_helpers = (0..128).into_iter().collect::<Vec<u8>>();
+    let available_helpers = all::<HelperFunctionID>().map(|e| e as u8).collect::<Vec<u8>>();
     // We first deploy the program on the tested microcontroller
     let result = deploy_test_script(test_program, layout, environment, available_helpers).await;
     if let Err(string) = &result {
@@ -92,7 +93,7 @@ pub async fn benchmark_execution(
 
     // when executing a different helper encoding is used.
 
-    let available_helpers = (0..24).into_iter().collect::<Vec<u8>>();
+    let available_helpers = all::<HelperFunctionID>().map(|e| e as u8).collect::<Vec<u8>>();
     let response = execute(
         &environment.riot_instance_ip,
         TargetVM::Rbpf,
@@ -127,7 +128,7 @@ pub async fn test_execution_accessing_coap_pkt_femtocontainer_vm(
     environment: &Environment,
 ) {
     // By default all helpers are allowed
-    let available_helpers = (0..128).into_iter().collect::<Vec<u8>>();
+    let available_helpers = all::<HelperFunctionID>().map(|e| e as u8).collect::<Vec<u8>>();
     test_execution_accessing_coap_pkt_specifying_helpers(
         test_program,
         layout,
@@ -144,7 +145,7 @@ pub async fn test_execution_accessing_coap_pkt(
     environment: &Environment,
 ) {
     // By default all helpers are allowed
-    let available_helpers = (0..128).into_iter().collect::<Vec<u8>>();
+    let available_helpers = all::<HelperFunctionID>().map(|e| e as u8).collect::<Vec<u8>>();
     test_execution_accessing_coap_pkt_specifying_helpers(
         test_program,
         layout,
@@ -270,7 +271,7 @@ pub async fn execute_deployed_program_on_coap(
     environment: &Environment,
 ) -> Result<String, String> {
     // We allow all helpers
-    let available_helpers = (0..24).into_iter().collect::<Vec<u8>>();
+    let available_helpers = all::<HelperFunctionID>().map(|e| e as u8).collect::<Vec<u8>>();
     let response = execute(
         &environment.riot_instance_ip,
         target_vm,
@@ -329,10 +330,7 @@ pub async fn execute_deployed_program(
     target_vm: TargetVM,
     environment: &Environment,
 ) -> Result<i32, String> {
-    // When sending a request to execute, we can only specify up to 24 helpers
-    // which are then encoded in a 24-bit bitstring. Because of this, we can't
-    // use the full range of u8
-    let available_helpers = (0..24).into_iter().collect::<Vec<u8>>();
+    let available_helpers = all::<HelperFunctionID>().map(|e| e as u8).collect::<Vec<u8>>();
     execute_deployed_program_specifying_helpers(
         suit_storage_slot,
         layout,

@@ -31,7 +31,7 @@ pub enum Action {
         #[arg(long, default_value_t = String::from("FunctionRelocationMetadata"))]
         binary_layout: String,
         /// Controlls which indices of helpers are made available to the VM
-        #[clap(short, long, value_parser, num_args = 1.., value_delimiter = ' ')]
+        #[clap(long, long, value_parser, num_args = 1.., value_delimiter = ' ')]
         helper_indices: Vec<u8>,
     },
     /// Sign the eBPF binary for SUIT update protocol. Generates  the manifest,
@@ -138,7 +138,7 @@ pub enum Action {
         host_ipv6_addr: String,
 
         /// Controlls which indices of helpers are made available to the VM
-        #[clap(short, long, value_parser, num_args = 1.., value_delimiter = ' ')]
+        #[clap(long, long, value_parser, num_args = 1.., value_delimiter = ' ')]
         helper_indices: Vec<u8>,
     },
     /// Sends a request to the RIOT instance to execute the loaded eBPF bytecode
@@ -174,7 +174,7 @@ pub enum Action {
         execution_model: String,
 
         /// Controlls which indices of helpers are made available to the VM
-        #[clap(short, long, value_parser, num_args = 1.., value_delimiter = ' ')]
+        #[clap(long, long, value_parser, num_args = 1.., value_delimiter = ' ')]
         helper_indices: Vec<u8>,
     },
 }
