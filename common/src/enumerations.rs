@@ -7,13 +7,14 @@ use core::fmt;
 use core::str::FromStr;
 
 use alloc::{format, string::String};
+use enum_iterator::Sequence;
 use serde::{Deserialize, Serialize};
 
 /// Configures a particular instance of the eBPF VM, it specifies the target version
 /// of the VM implementation, the binary file layout that the VM should expect
 /// in the loaded bytecode and the SUIT storage slot from where the program
 /// should be loaded.
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
+#[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq)]
 pub struct VMConfiguration {
     /// The version of the VM implementation that will be used by the VM instance.
     pub vm_target: TargetVM,
@@ -243,7 +244,7 @@ mod tests {
 /// In case of the helper functions that were implemented for the FemtoContainer
 /// VM, we use the same set of IDs for compatibility.
 #[allow(non_camel_case_types)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, Sequence)]
 pub enum HelperFunctionID {
     /* Print/debug helper functions */
     BPF_PRINTF_IDX = 0x01,
