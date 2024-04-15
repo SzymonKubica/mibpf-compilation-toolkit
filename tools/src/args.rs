@@ -26,9 +26,9 @@ pub enum Action {
         #[arg(long)]
         binary_file: Option<String>,
         /// Layout of the binary file that the VM should expect.
-        /// Available options: OnlyTextSection, FemtoContainersHeader, FunctionRelocationMetadata, RawObjectFile,
+        /// Available options: OnlyTextSection, FemtoContainersHeader, ExtendedHeader, RawObjectFile,
         /// Determines which kind of postprocessing is applied to the ELF file.
-        #[arg(long, default_value_t = String::from("FunctionRelocationMetadata"))]
+        #[arg(long, default_value_t = String::from("ExtendedHeader"))]
         binary_layout: String,
         /// Controlls which indices of helpers are made available to the VM
         #[clap(long, long, value_parser, num_args = 1.., value_delimiter = ' ')]
@@ -99,8 +99,8 @@ pub enum Action {
         out_dir: String,
 
         /// Layout of the binary file that the VM should expect.
-        /// Available options: OnlyTextSection, FemtoContainersHeader, FunctionRelocationMetadata, RawObjectFile,
-        #[arg(long, default_value_t = String::from("FunctionRelocationMetadata"))]
+        /// Available options: OnlyTextSection, FemtoContainersHeader, ExtendedHeader, RawObjectFile,
+        #[arg(long, default_value_t = String::from("ExtendedHeader"))]
         binary_layout: String,
 
         /// Network interface of the machine hosting the CoAP fileserver.
@@ -153,8 +153,8 @@ pub enum Action {
         target: String,
 
         /// Layout of the binary file that the VM should expect.
-        /// Available options: OnlyTextSection, FemtoContainersHeader, FunctionRelocationMetadata, RawObjectFile,
-        #[arg(long, default_value_t = String::from("FunctionRelocationMetadata"))]
+        /// Available options: OnlyTextSection, FemtoContainersHeader, ExtendedHeader, RawObjectFile,
+        #[arg(long, default_value_t = String::from("ExtendedHeader"))]
         binary_layout: String,
 
         /// SUIT storage slot (0 or 1) where the signed binary blob is intended

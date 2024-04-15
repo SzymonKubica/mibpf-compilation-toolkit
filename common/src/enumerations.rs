@@ -1,8 +1,7 @@
-/*
- * This module contains the structs for the internal representation of objects
- * used by the different subcommands of the tool.
- */
-
+/// This module defines all of the structs and enums that are shared between
+/// the different components of the project (cli tool, mibpf-server). The idea
+/// is that the internal representation of all structures in the system can be
+/// easily imported into each one of the components as a library.
 use core::fmt;
 use core::str::FromStr;
 
@@ -19,20 +18,33 @@ use serde::{Deserialize, Serialize};
 pub struct VMConfiguration {
     /// The version of the VM implementation that will be used by the VM instance.
     pub vm_target: TargetVM,
+    /// The SUIT storage slot from where the program should be loaded.
+    pub suit_slot: usize,
     /// Defines the order of information present in the loaded program. It is
     /// needed by the VM to correctly find the first instruction in the program
     /// and extract the metadata.
     pub binary_layout: BinaryFileLayout,
-    /// The SUIT storage slot from where the program should be loaded.
-    pub suit_slot: usize,
+    /// Defines at what point of the pipeline the verification of accesses to
+    /// helper function calls should take place.
+    pub helper_access_verification: HelperAccessVerification,
+    /// Informs the VM from where the list of available helpers should be sourced
+    pub helper_access_list_source: HelperAccessListSource,
 }
 
 impl VMConfiguration {
-    pub fn new(vm_target: TargetVM, binary_layout: BinaryFileLayout, suit_slot: usize) -> Self {
+    pub fn new(
+        vm_target: TargetVM,
+        suit_slot: usize,
+        binary_layout: BinaryFileLayout,
+        helper_access_verification: HelperAccessVerification,
+        helper_access_list_source: HelperAccessListSource,
+    ) -> Self {
         VMConfiguration {
             vm_target,
             binary_layout,
             suit_slot,
+            helper_access_verification,
+            helper_access_list_source,
         }
     }
 
@@ -47,12 +59,16 @@ impl VMConfiguration {
     /// The encoding is as follows:
     /// - The least significant bit specifies whether we should use the rbpf
     /// or the FemtoContainers VM. 0 corresponds to rbpf and 1 to FemtoContainers.
-    /// - The next bit specifies the SUIT storage slot storing the eBPF program
-    /// bytecode. There are only two available slots provided by RIOT so a single
-    /// bit is sufficient.
-    /// - The remaining bits are used to encode the binary layout that the VM
-    /// should expect in the loaded program bytecode. Currently there are only 4
-    /// options so 2 bits are sufficient. This can be adapted in the future.
+    /// - The next two bits specify the SUIT storage slot storing the eBPF program
+    /// bytecode.
+    /// - The next two bits specify the binary file layout that the VM should
+    ///   expect in the loaded program
+    /// - The next two bits specify the time in the pipeline at which the verification
+    ///   of accesses to helper functions should take place.
+    /// - The last bit (the most significant one) specifies whether the list
+    ///   of allowed helper functions should be parsed from the program binary
+    ///   (only supported for the [`BinaryFileLayout::ExtendedHeader`]) or taken
+    ///   from the execution request payload.
     ///
     /// # Example
     /// ```
@@ -74,7 +90,9 @@ impl VMConfiguration {
         let mut encoding: u8 = 0;
         encoding |= self.vm_target as u8;
         encoding |= (self.suit_slot as u8) << 1;
-        encoding |= (self.binary_layout as u8) << 2;
+        encoding |= (self.binary_layout as u8) << 3;
+        encoding |= (self.helper_access_verification as u8) << 5;
+        encoding |= (self.helper_access_list_source as u8) << 7;
         encoding
     }
 
@@ -82,8 +100,10 @@ impl VMConfiguration {
     pub fn decode(encoding: u8) -> Self {
         VMConfiguration {
             vm_target: TargetVM::from(encoding & 0b1),
-            suit_slot: ((encoding >> 1) & 0b1) as usize,
-            binary_layout: BinaryFileLayout::from((encoding >> 2) & 0b11),
+            suit_slot: ((encoding >> 1) & 0b11) as usize,
+            binary_layout: BinaryFileLayout::from((encoding >> 3) & 0b11),
+            helper_access_verification: HelperAccessVerification::from((encoding >> 5) & 0b11),
+            helper_access_list_source: HelperAccessListSource::from((encoding >> 7) & 0b1),
         }
     }
 }
@@ -116,7 +136,7 @@ impl FromStr for TargetVM {
         match s {
             "rBPF" => Ok(TargetVM::Rbpf),
             "FemtoContainer" => Ok(TargetVM::FemtoContainer),
-            _ => Err(format!("Unknown target VM: {}", s))
+            _ => Err(format!("Unknown target VM: {}", s)),
         }
     }
 }
@@ -150,7 +170,7 @@ pub enum BinaryFileLayout {
     /// An extension of the [`BytecodeLayout::FemtoContainersHeader`] bytecode
     /// layout. It appends additional metadata used for resolving function
     /// relocations and is supported by the modified version of rBPF VM.
-    FunctionRelocationMetadata = 2,
+    ExtendedHeader = 2,
     /// Raw object files are sent to the device and the relocations are performed
     /// there. This allows for maximum compatibility (e.g. .data relocations)
     /// however it comes with a burden of an increased memory requirements.
@@ -163,7 +183,7 @@ impl FromStr for BinaryFileLayout {
         match s {
             "OnlyTextSection" => Ok(BinaryFileLayout::OnlyTextSection),
             "FemtoContainersHeader" => Ok(BinaryFileLayout::FemtoContainersHeader),
-            "FunctionRelocationMetadata" => Ok(BinaryFileLayout::FunctionRelocationMetadata),
+            "ExtendedHeader" => Ok(BinaryFileLayout::ExtendedHeader),
             "RawObjectFile" => Ok(BinaryFileLayout::RawObjectFile),
             _ => Err(format!("Unknown binary file layout: {}", s)),
         }
@@ -175,7 +195,7 @@ impl From<u8> for BinaryFileLayout {
         match val {
             0 => BinaryFileLayout::OnlyTextSection,
             1 => BinaryFileLayout::FemtoContainersHeader,
-            2 => BinaryFileLayout::FunctionRelocationMetadata,
+            2 => BinaryFileLayout::ExtendedHeader,
             3 => BinaryFileLayout::RawObjectFile,
             _ => panic!("Unknown binary file layout: {}", val),
         }
@@ -184,24 +204,24 @@ impl From<u8> for BinaryFileLayout {
 
 #[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub enum ExecutionModel {
-  /// The VM instance is spawned in the thread that is handling the network
-  /// request to execute the VM, the programs running using this model should be
-  /// short lived and terminate quickly enough so that the response can be sent
-  /// back to the client (this response usually contains the return value of the
-  /// program)
-  ShortLived,
-  /// Similar to the ShortLived execution model, but in this case the program has
-  /// access to the packet data and can write the response there using helpers.
-  /// The program can format the CoAP response accordingly and so it allows for
-  /// specifying custom responses.
-  WithAccessToCoapPacket,
-  /// The VM instances are spawned on a separate thread (by communicating a request
-  /// to start executing using message passing IPC provided by RIOT). The VM
-  /// can then run as long as needed and there is no way of early terminating
-  /// its execution
-  LongRunning,
-  /// Similar as ShortLived but more data is collected when the vm runs.
-  Benchmark,
+    /// The VM instance is spawned in the thread that is handling the network
+    /// request to execute the VM, the programs running using this model should be
+    /// short lived and terminate quickly enough so that the response can be sent
+    /// back to the client (this response usually contains the return value of the
+    /// program)
+    ShortLived,
+    /// Similar to the ShortLived execution model, but in this case the program has
+    /// access to the packet data and can write the response there using helpers.
+    /// The program can format the CoAP response accordingly and so it allows for
+    /// specifying custom responses.
+    WithAccessToCoapPacket,
+    /// The VM instances are spawned on a separate thread (by communicating a request
+    /// to start executing using message passing IPC provided by RIOT). The VM
+    /// can then run as long as needed and there is no way of early terminating
+    /// its execution
+    LongRunning,
+    /// Similar as ShortLived but more data is collected when the vm runs.
+    Benchmark,
 }
 
 impl FromStr for ExecutionModel {
@@ -217,6 +237,83 @@ impl FromStr for ExecutionModel {
     }
 }
 
+/// Controlls at what point of the pipeline the verification of calls to helper
+/// functions happens.
+#[derive(Eq, PartialEq, Debug, Deserialize, Serialize, Copy, Clone)]
+pub enum HelperAccessVerification {
+    /// The program bytecode is parsed immediately after compilation, before it
+    /// gets signed and sent to the target device.
+    AheadOfTime = 0,
+    /// The program is verified when it gets deployed to the target microcontroller,
+    /// the SUIT storage worker fetches the program, then we perform verification
+    /// on it and write it into the SUIT storage if it is well behaved. From there
+    /// subsequent execution requests can take the program and execute it.
+    LoadTime = 1,
+    /// The verification happens immediately before the VM starts executing the
+    /// program.
+    PreFlight = 2,
+    /// The VM performs runtime checks before making calls to helpers.
+    Runtime = 3,
+}
+
+impl FromStr for HelperAccessVerification {
+    type Err = String;
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "AheadOfTime" => Ok(HelperAccessVerification::AheadOfTime),
+            "LoadTime" => Ok(HelperAccessVerification::LoadTime),
+            "PreFlight" => Ok(HelperAccessVerification::PreFlight),
+            "Runtime" => Ok(HelperAccessVerification::Runtime),
+            _ => Err(format!("Unknown helper access verification type: {}", s)),
+        }
+    }
+}
+
+impl From<u8> for HelperAccessVerification {
+    fn from(val: u8) -> Self {
+        match val {
+            0 => HelperAccessVerification::AheadOfTime,
+            1 => HelperAccessVerification::LoadTime,
+            2 => HelperAccessVerification::PreFlight,
+            3 => HelperAccessVerification::Runtime,
+            _ => panic!("Unknown helper access verification type: {}", val),
+        }
+    }
+}
+
+/// Specifies from where we should take the list of allowed helper functions
+/// when verifying the program.
+#[derive(Eq, PartialEq, Debug, Deserialize, Serialize, Copy, Clone)]
+pub enum HelperAccessListSource {
+    /// The list of allowed helpers is appended to the payload of the request
+    /// to start executing the VM.
+    ExecuteRequest = 0,
+    /// The list of allowed helpers is embedded in the program bytecode. Note
+    /// that currently this is only supported with the [`BinaryFileLayout::FunctionRelocationMetadata`]
+    BinaryMetadata = 1,
+}
+
+impl FromStr for HelperAccessListSource {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "ExecuteRequest" => Ok(HelperAccessListSource::ExecuteRequest),
+            "BinaryMetadata" => Ok(HelperAccessListSource::BinaryMetadata),
+            _ => Err(format!("Unknown helper access list source: {}", s)),
+        }
+    }
+}
+
+impl From<u8> for HelperAccessListSource {
+    fn from(val: u8) -> Self {
+        match val {
+            0 => HelperAccessListSource::ExecuteRequest,
+            1 => HelperAccessListSource::BinaryMetadata,
+            _ => panic!("Unknown helper access list source: {}", val),
+        }
+    }
+}
 
 #[cfg(test)]
 mod tests {
@@ -226,8 +323,10 @@ mod tests {
     fn decode_after_encode_is_identity() {
         let configuration = VMConfiguration::new(
             TargetVM::FemtoContainer,
-            BinaryFileLayout::FemtoContainersHeader,
             1,
+            BinaryFileLayout::FemtoContainersHeader,
+            HelperAccessVerification::PreFlight,
+            HelperAccessListSource::BinaryMetadata,
         );
 
         let encoded = configuration.encode();

@@ -7,7 +7,7 @@ use mibpf_common::BinaryFileLayout;
 pub async fn benchmark_binary_layouts() {
     let layouts = vec![
         BinaryFileLayout::FemtoContainersHeader,
-        BinaryFileLayout::FunctionRelocationMetadata,
+        BinaryFileLayout::ExtendedHeader,
         BinaryFileLayout::RawObjectFile,
     ];
 

@@ -221,12 +221,7 @@ async fn printf_no_required_helpers_panics() {
 /// response with the return value of the program within the request timeout.
 async fn test_function_relocation_metadata(test_program: &str) {
     let env = load_env();
-    test_execution(
-        test_program,
-        BinaryFileLayout::FunctionRelocationMetadata,
-        &env,
-    )
-    .await;
+    test_execution(test_program, BinaryFileLayout::ExtendedHeader, &env).await;
 }
 
 // Similar to `test_function_relocation_metadata` but allows for restricting access
@@ -238,7 +233,7 @@ async fn test_function_relocation_metadata_with_helpers(
     let env = load_env();
     test_execution_specifying_helpers(
         test_program,
-        BinaryFileLayout::FunctionRelocationMetadata,
+        BinaryFileLayout::ExtendedHeader,
         TargetVM::Rbpf,
         &env,
         allowed_helpers,
@@ -252,12 +247,7 @@ async fn test_function_relocation_metadata_with_helpers(
 /// first line of the test file.
 async fn test_function_relocation_metadata_accessing_coap_pkt(test_program: &str) {
     let env = load_env();
-    test_execution_accessing_coap_pkt(
-        test_program,
-        BinaryFileLayout::FunctionRelocationMetadata,
-        &env,
-    )
-    .await;
+    test_execution_accessing_coap_pkt(test_program, BinaryFileLayout::ExtendedHeader, &env).await;
 }
 
 async fn test_function_relocation_metadata_accessing_coap_pkt_with_helpers(
@@ -267,7 +257,7 @@ async fn test_function_relocation_metadata_accessing_coap_pkt_with_helpers(
     let env = load_env();
     test_execution_accessing_coap_pkt_specifying_helpers(
         test_program,
-        BinaryFileLayout::FunctionRelocationMetadata,
+        BinaryFileLayout::ExtendedHeader,
         TargetVM::Rbpf,
         &env,
         allowed_helpers,

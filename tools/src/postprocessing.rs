@@ -31,7 +31,7 @@ pub fn apply_postprocessing(
             let text_section_bytes = extract_section(".text", &program_bytes)?;
             Vec::from(text_section_bytes)
         }
-        BinaryFileLayout::FunctionRelocationMetadata => {
+        BinaryFileLayout::ExtendedHeader => {
             let program_bytes = read_bytes_from_file(source_object_file);
             let relocated_program = assemble_binary_specifying_helpers(&program_bytes, helper_indices)?;
             relocated_program

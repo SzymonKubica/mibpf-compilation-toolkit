@@ -2,7 +2,7 @@ use std::process::Command;
 
 use enum_iterator::all;
 use log::debug;
-use mibpf_common::{ExecutionModel, HelperFunctionID};
+use mibpf_common::{ExecutionModel, HelperFunctionID, HelperAccessVerification, HelperAccessListSource};
 
 use crate::mibpf_common::{BinaryFileLayout, TargetVM, VMConfiguration, VMExecutionRequest};
 
@@ -28,7 +28,7 @@ pub async fn execute(
     };
 
     let request = VMExecutionRequest::new(
-        VMConfiguration::new(target, binary_layout, suit_storage_slot),
+        VMConfiguration::new(target, suit_storage_slot, binary_layout, HelperAccessVerification::PreFlight, HelperAccessListSource::ExecuteRequest),
         helper_indices,
     );
 
