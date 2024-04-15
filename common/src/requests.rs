@@ -1,6 +1,10 @@
 use core::num::ParseIntError;
 
-use alloc::{format, string::String, vec::Vec};
+use alloc::{
+    format,
+    string::{String, ToString},
+    vec::Vec,
+};
 use serde::{Deserialize, Serialize};
 
 use crate::{HelperFunctionID, VMConfiguration};
@@ -110,7 +114,39 @@ impl VMExecutionRequest {
 /// specifying which binary needs to be pulled.
 #[derive(Serialize, Deserialize, Debug)]
 pub struct SuitPullRequest {
-    pub ip_addr: String,
+    /// Ip address of the host machine sending the request
+    pub ip: String,
     pub manifest: String,
-    pub riot_network_interface: String,
+    /// Network interface used by the riot instance
+    pub riot_netif: String,
+    /// Encoded VM configuration, see: [`VMConfiguration`]
+    pub config: u8,
+    /// Encoded list of allowed helpers
+    pub helpers: String,
+}
+
+impl SuitPullRequest {
+    pub fn encode(&self) -> String {
+        return format!(
+            "{}|{}|{}|{}|{}",
+            self.ip, self.manifest, self.riot_netif, self.config, self.helpers
+        );
+    }
+
+    pub fn decode(data: String) -> Result<SuitPullRequest, String> {
+        let data = data.split('|').collect::<Vec<&str>>();
+
+        if data.len() != 5 {
+            return Err("Invalid number of sections in the request".to_string());
+        }
+
+        Ok(SuitPullRequest {
+            ip: data[0].to_string(),
+            manifest: data[1].to_string(),
+            riot_netif: data[2].to_string(),
+            config: u8::from_str_radix(data[3], 10)
+                .map_err(|e| format!("Unable to parse: {}", e))?,
+            helpers: data[4].to_string(),
+        })
+    }
 }

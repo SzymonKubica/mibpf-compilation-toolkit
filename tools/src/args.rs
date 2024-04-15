@@ -87,6 +87,31 @@ pub enum Action {
         /// Network interface of the RIOT instance
         #[arg(long, default_value_t = String::from("5"))]
         riot_network_interface: String,
+
+        /// Target version of the eBPF vm. Available options: Femto-Containers, rBPF
+        #[arg(long, default_value_t = String::from("rBPF"))]
+        target: String,
+
+        /// Layout of the binary file that the VM should expect.
+        /// Available options: OnlyTextSection, FemtoContainersHeader, ExtendedHeader, RawObjectFile,
+        #[arg(long, default_value_t = String::from("ExtendedHeader"))]
+        binary_layout: String,
+
+        /// SUIT storage slot (0 or 1) where the signed binary blob is intended
+        /// bo be loaded.
+        #[arg(long, short, default_value_t = 0)]
+        suit_storage_slot: i32,
+
+        /// Controlls which indices of helpers are made available to the VM
+        #[clap(long, long, value_parser, num_args = 1.., value_delimiter = ' ')]
+        helper_indices: Vec<u8>,
+
+        /// Controlls the pipeline stage at which the helpers need to be
+        /// verified
+        #[arg(long, default_value_t = String::from("Runtime"))]
+        helper_access_verification: String,
+        #[arg(long, default_value_t = String::from("ExecuteRequest"))]
+        helper_access_list_source: String,
     },
     /// Compiles, signs and initiates firmware pull in one step.
     Deploy {
@@ -97,6 +122,10 @@ pub enum Action {
         /// Directory for the object files
         #[arg(long, default_value_t = String::from("./out"))]
         out_dir: String,
+
+        /// Target version of the eBPF vm. Available options: Femto-Containers, rBPF
+        #[arg(long, default_value_t = String::from("rBPF"))]
+        target: String,
 
         /// Layout of the binary file that the VM should expect.
         /// Available options: OnlyTextSection, FemtoContainersHeader, ExtendedHeader, RawObjectFile,
@@ -140,6 +169,13 @@ pub enum Action {
         /// Controlls which indices of helpers are made available to the VM
         #[clap(long, long, value_parser, num_args = 1.., value_delimiter = ' ')]
         helper_indices: Vec<u8>,
+
+        /// Controlls the pipeline stage at which the helpers need to be
+        /// verified
+        #[arg(long, default_value_t = String::from("Runtime"))]
+        helper_access_verification: String,
+        #[arg(long, default_value_t = String::from("ExecuteRequest"))]
+        helper_access_list_source: String,
     },
     /// Sends a request to the RIOT instance to execute the loaded eBPF bytecode
     /// from a specified SUIT storage slot.
@@ -176,6 +212,12 @@ pub enum Action {
         /// Controlls which indices of helpers are made available to the VM
         #[clap(long, long, value_parser, num_args = 1.., value_delimiter = ' ')]
         helper_indices: Vec<u8>,
+        /// Controlls the pipeline stage at which the helpers need to be
+        /// verified
+        #[arg(long, default_value_t = String::from("Runtime"))]
+        helper_access_verification: String,
+        #[arg(long, default_value_t = String::from("ExecuteRequest"))]
+        helper_access_list_source: String,
     },
 }
 

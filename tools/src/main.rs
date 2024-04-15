@@ -21,7 +21,9 @@ use compile::compile;
 use deploy::deploy;
 use environment::load_env;
 use execute::execute;
-use mibpf_common::{BinaryFileLayout, ExecutionModel, TargetVM};
+use mibpf_common::{
+    BinaryFileLayout, ExecutionModel, HelperAccessListSource, HelperAccessVerification, TargetVM,
+};
 use postprocessing::apply_postprocessing;
 use pull::pull;
 use sign::sign;
@@ -109,10 +111,23 @@ async fn handle_pull(args: &Action, use_env: bool) -> Result<(), String> {
         suit_manifest,
         host_network_interface,
         riot_network_interface,
+        target,
+        binary_layout,
+        suit_storage_slot,
+        helper_indices,
+        helper_access_verification,
+        helper_access_list_source,
     } = args
     else {
         return Err(format!("Invalid subcommand args: {:?}", args));
     };
+
+    let target_vm = TargetVM::from_str(target.as_str())?;
+    let binary_file_layout = binary_layout.as_str().parse::<BinaryFileLayout>()?;
+    let helper_access_verification =
+        HelperAccessVerification::from_str(helper_access_verification.as_str())?;
+    let helper_access_list_source =
+        HelperAccessListSource::from_str(helper_access_list_source.as_str())?;
 
     if use_env {
         let env = load_env();
@@ -123,6 +138,12 @@ async fn handle_pull(args: &Action, use_env: bool) -> Result<(), String> {
             suit_manifest,
             &env.host_net_if,
             &env.riot_instance_net_if,
+            target_vm,
+            binary_file_layout,
+            *suit_storage_slot as usize,
+            helper_access_verification,
+            helper_access_list_source,
+            helper_indices,
         )
         .await;
     }
@@ -133,6 +154,12 @@ async fn handle_pull(args: &Action, use_env: bool) -> Result<(), String> {
         suit_manifest,
         host_network_interface,
         riot_network_interface,
+        target_vm,
+        binary_file_layout,
+        *suit_storage_slot as usize,
+        helper_access_verification,
+        helper_access_list_source,
+        helper_indices,
     )
     .await
 }
@@ -145,6 +172,8 @@ async fn handle_execute(args: &Action, use_env: bool) -> Result<(), String> {
         host_network_interface,
         execution_model,
         helper_indices,
+        helper_access_verification,
+        helper_access_list_source,
     } = args
     else {
         return Err(format!("Invalid subcommand args: {:?}", args));
@@ -153,6 +182,10 @@ async fn handle_execute(args: &Action, use_env: bool) -> Result<(), String> {
     let target_vm = TargetVM::from_str(target.as_str())?;
     let execution_model = ExecutionModel::from_str(execution_model)?;
     let binary_file_layout = binary_layout.as_str().parse::<BinaryFileLayout>()?;
+    let helper_access_verification =
+        HelperAccessVerification::from_str(helper_access_verification.as_str())?;
+    let helper_access_list_source =
+        HelperAccessListSource::from_str(helper_access_list_source.as_str())?;
 
     let response = if use_env {
         let env = load_env();
@@ -224,12 +257,20 @@ async fn handle_deploy(args: &Action, use_env: bool) -> Result<(), String> {
         binary_layout,
         riot_network_interface,
         helper_indices,
+        helper_access_verification,
+        helper_access_list_source,
+        target,
     } = args
     else {
         return Err(format!("Invalid subcommand args: {:?}", args));
     };
 
+    let target_vm = TargetVM::from_str(target.as_str())?;
     let binary_layout = binary_layout.as_str().parse::<BinaryFileLayout>()?;
+    let helper_access_verification =
+        HelperAccessVerification::from_str(helper_access_verification.as_str())?;
+    let helper_access_list_source =
+        HelperAccessListSource::from_str(helper_access_list_source.as_str())?;
 
     if use_env {
         let env = environment::load_env();
@@ -237,6 +278,7 @@ async fn handle_deploy(args: &Action, use_env: bool) -> Result<(), String> {
         return deploy(
             bpf_source_file,
             out_dir,
+            target_vm,
             binary_layout,
             &env.coap_root_dir,
             *suit_storage_slot as usize,
@@ -247,6 +289,8 @@ async fn handle_deploy(args: &Action, use_env: bool) -> Result<(), String> {
             &env.board_name,
             None,
             helper_indices.to_vec(),
+            helper_access_verification,
+            helper_access_list_source,
         )
         .await;
     }
@@ -254,6 +298,7 @@ async fn handle_deploy(args: &Action, use_env: bool) -> Result<(), String> {
     deploy(
         bpf_source_file,
         out_dir,
+        target_vm,
         binary_layout,
         coaproot_dir,
         *suit_storage_slot as usize,
@@ -264,6 +309,8 @@ async fn handle_deploy(args: &Action, use_env: bool) -> Result<(), String> {
         board_name,
         None,
         helper_indices.to_vec(),
+        helper_access_verification,
+        helper_access_list_source,
     )
     .await
 }
