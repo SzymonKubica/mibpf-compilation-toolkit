@@ -196,6 +196,8 @@ async fn handle_execute(args: &Action, use_env: bool) -> Result<(), String> {
             *suit_storage_slot as usize,
             &env.host_net_if,
             execution_model,
+            helper_access_verification,
+            helper_access_list_source,
             helper_indices,
         )
         .await?
@@ -207,6 +209,8 @@ async fn handle_execute(args: &Action, use_env: bool) -> Result<(), String> {
             *suit_storage_slot as usize,
             host_network_interface,
             execution_model,
+            helper_access_verification,
+            helper_access_list_source,
             helper_indices,
         )
         .await?
@@ -223,12 +227,15 @@ fn handle_postprocessing(args: &Action) -> Result<(), String> {
         binary_file,
         binary_layout,
         helper_indices,
+        helper_access_verification,
     } = args
     else {
         return Err(format!("Invalid subcommand args: {:?}", args));
     };
 
     let binary_layout = binary_layout.as_str().parse::<BinaryFileLayout>()?;
+    let helper_access_verification =
+        HelperAccessVerification::from_str(helper_access_verification.as_str())?;
 
     let file_name = if let Some(binary_file) = binary_file {
         binary_file
@@ -241,6 +248,7 @@ fn handle_postprocessing(args: &Action) -> Result<(), String> {
         binary_layout,
         file_name,
         helper_indices.to_vec(),
+        helper_access_verification,
     )
 }
 

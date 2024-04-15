@@ -2,7 +2,9 @@ use std::process::Command;
 
 use enum_iterator::all;
 use log::debug;
-use mibpf_common::{ExecutionModel, HelperFunctionID, HelperAccessVerification, HelperAccessListSource};
+use mibpf_common::{
+    ExecutionModel, HelperAccessListSource, HelperAccessVerification, HelperFunctionID,
+};
 
 use crate::mibpf_common::{BinaryFileLayout, TargetVM, VMConfiguration, VMExecutionRequest};
 
@@ -13,6 +15,8 @@ pub async fn execute(
     suit_storage_slot: usize,
     host_network_interface: &str,
     execution_model: ExecutionModel,
+    helper_access_verification: HelperAccessVerification,
+    helper_access_list_source: HelperAccessListSource,
     helper_indices: &[u8],
 ) -> Result<String, String> {
     // If the user doesn't specify any allowed helper indices, we allow all of them
@@ -28,7 +32,13 @@ pub async fn execute(
     };
 
     let request = VMExecutionRequest::new(
-        VMConfiguration::new(target, suit_storage_slot, binary_layout, HelperAccessVerification::PreFlight, HelperAccessListSource::ExecuteRequest),
+        VMConfiguration::new(
+            target,
+            suit_storage_slot,
+            binary_layout,
+            helper_access_verification,
+            helper_access_list_source,
+        ),
         helper_indices,
     );
 

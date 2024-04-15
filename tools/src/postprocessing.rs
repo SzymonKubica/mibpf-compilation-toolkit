@@ -4,11 +4,10 @@ use std::{
     process::Command,
 };
 
+use mibpf_common::{BinaryFileLayout, HelperAccessListSource, HelperAccessVerification};
 use mibpf_elf_utils::{
     assemble_binary_specifying_helpers, assemble_femtocontainer_binary, extract_section,
 };
-use mibpf_common::BinaryFileLayout;
-
 
 // This module is responsible for applying different post-processing steps
 // to the input ELF file to transform it into a corresponding binary layout
@@ -18,11 +17,12 @@ pub fn apply_postprocessing(
     binary_layout: BinaryFileLayout,
     output_file_name: &str,
     helper_indices: Vec<u8>,
+    helper_access_verification: HelperAccessVerification,
 ) -> Result<(), String> {
     // When we want to perform relocations on the actual target device, we
     // only need to strip off the redundant information from the object file.
     if binary_layout == BinaryFileLayout::RawObjectFile {
-        return strip_binary(&source_object_file, Some(&output_file_name.to_string()));
+        strip_binary(&source_object_file, Some(&output_file_name.to_string()))?;
     }
 
     let processed_program_bytes = match binary_layout {
@@ -33,7 +33,8 @@ pub fn apply_postprocessing(
         }
         BinaryFileLayout::ExtendedHeader => {
             let program_bytes = read_bytes_from_file(source_object_file);
-            let relocated_program = assemble_binary_specifying_helpers(&program_bytes, helper_indices)?;
+            let relocated_program =
+                assemble_binary_specifying_helpers(&program_bytes, helper_indices.clone())?;
             relocated_program
         }
         BinaryFileLayout::FemtoContainersHeader => {
@@ -41,13 +42,32 @@ pub fn apply_postprocessing(
             let relocated_program = assemble_femtocontainer_binary(&program_bytes)?;
             relocated_program
         }
-        BinaryFileLayout::RawObjectFile => {
-            unreachable!()
-        }
+        BinaryFileLayout::RawObjectFile => read_bytes_from_file(output_file_name),
     };
+
+    if helper_access_verification == HelperAccessVerification::AheadOfTime {
+        // We first need to map our state to the structures that rbpf understands
+        let helper_idxs = helper_indices
+            .iter()
+            .map(|id| *id as u32)
+            .collect::<Vec<u32>>();
+        let interpreter = map_interpreter(binary_layout);
+        rbpf::check_helpers(&processed_program_bytes, &helper_idxs, interpreter)
+            .map_err(|e| format!("Error when checking helper function access: {:?}", e))?;
+    }
 
     write_binary(&processed_program_bytes, output_file_name)
 }
+
+pub fn map_interpreter(layout: BinaryFileLayout) -> rbpf::InterpreterVariant {
+    match layout {
+        BinaryFileLayout::FemtoContainersHeader => rbpf::InterpreterVariant::FemtoContainersHeader,
+        BinaryFileLayout::ExtendedHeader => rbpf::InterpreterVariant::ExtendedHeader,
+        BinaryFileLayout::RawObjectFile => rbpf::InterpreterVariant::RawObjectFile,
+        BinaryFileLayout::OnlyTextSection => rbpf::InterpreterVariant::Default,
+    }
+}
+
 
 fn write_binary(bytes: &[u8], destination: &str) -> Result<(), String> {
     let Ok(mut f) = File::create(destination) else {

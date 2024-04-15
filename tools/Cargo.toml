@@ -11,7 +11,8 @@ num = { version = "0.4.2", default-features = false}
 coap = "0.14.3"
 coap-lite = "0.11.4"
 elf = "0.0.10"
-rbpf = "0.2.0"
+rbpf = { path = "../../rbpf-for-microcontrollers", default-features = false }
+
 goblin = "0.8.0"
 
 tokio = "1.36.0"

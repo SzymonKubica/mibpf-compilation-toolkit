@@ -33,6 +33,10 @@ pub enum Action {
         /// Controlls which indices of helpers are made available to the VM
         #[clap(long, long, value_parser, num_args = 1.., value_delimiter = ' ')]
         helper_indices: Vec<u8>,
+        /// Controlls the pipeline stage at which the helpers need to be
+        /// verified
+        #[arg(long, default_value_t = String::from("Runtime"))]
+        helper_access_verification: String,
     },
     /// Sign the eBPF binary for SUIT update protocol. Generates  the manifest,
     /// signs it and places all files in the CoAP fileserver root directory.

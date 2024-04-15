@@ -28,7 +28,13 @@ pub async fn deploy(
     let suit_manifest = &format!("suit_manifest{}.signed", suit_storage_slot);
 
     compile(bpf_source_file, Some(TEMP_FILE), out_dir)?;
-    apply_postprocessing(&object_file_name, binary_layout, TEMP_FILE, helper_indices.clone())?;
+    apply_postprocessing(
+        &object_file_name,
+        binary_layout,
+        TEMP_FILE,
+        helper_indices.clone(),
+        helper_access_verification,
+    )?;
     sign(
         host_net_if,
         board,
