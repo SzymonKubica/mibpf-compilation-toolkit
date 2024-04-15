@@ -7,6 +7,9 @@ edition = "2021"
 
 [dependencies]
 enum-iterator = "2.0.0"
+num = { version = "0.4.2", default-features = false}
+num-derive = { version = "0.4.2", default-features = false }
+num-traits = { version = "0.2.18", default-features = false }
 serde = { version = "1.0", default-features = false, features = ["alloc", "derive"] }
 serde-json-core = "0.5.1"
 

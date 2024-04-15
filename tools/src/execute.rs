@@ -4,7 +4,7 @@ use enum_iterator::all;
 use log::debug;
 use mibpf_common::{ExecutionModel, HelperFunctionID};
 
-use crate::mibpf_common::{BinaryFileLayout, TargetVM, VMConfiguration, VMExecutionRequestMsg};
+use crate::mibpf_common::{BinaryFileLayout, TargetVM, VMConfiguration, VMExecutionRequest};
 
 pub async fn execute(
     riot_ipv6_addr: &str,
@@ -18,15 +18,17 @@ pub async fn execute(
     // If the user doesn't specify any allowed helper indices, we allow all of them
     // by default.
     let helper_indices = if helper_indices.len() == 0 {
-        all::<HelperFunctionID>()
-            .map(|e| e as u8)
-            .collect::<Vec<u8>>()
+        all::<HelperFunctionID>().collect::<Vec<HelperFunctionID>>()
     } else {
-        helper_indices.to_vec()
+        helper_indices
+            .to_vec()
+            .into_iter()
+            .filter_map(|i| num::FromPrimitive::from_u8(i))
+            .collect::<Vec<HelperFunctionID>>()
     };
 
-    let request = VMExecutionRequestMsg::new(
-        VMConfiguration::new(target, binary_layout, suit_storage_slot).encode(),
+    let request = VMExecutionRequest::new(
+        VMConfiguration::new(target, binary_layout, suit_storage_slot),
         helper_indices,
     );
 
@@ -73,10 +75,7 @@ pub async fn execute(
     if output.stderr.len() > 0 {
         let stderr = String::from_utf8(output.stderr)
             .map_err(|e| format!("Failed to parse the stderr: {}", e))?;
-        Err(format!(
-            "aiocoap-client failed with: {}",
-            stderr
-        ))?
+        Err(format!("aiocoap-client failed with: {}", stderr))?
     }
 
     let response = String::from_utf8(output.stdout)

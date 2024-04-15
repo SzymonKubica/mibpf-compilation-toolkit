@@ -8,6 +8,7 @@ use core::str::FromStr;
 
 use alloc::{format, string::String};
 use enum_iterator::Sequence;
+use num_derive::FromPrimitive;
 use serde::{Deserialize, Serialize};
 
 /// Configures a particular instance of the eBPF VM, it specifies the target version
@@ -244,7 +245,7 @@ mod tests {
 /// In case of the helper functions that were implemented for the FemtoContainer
 /// VM, we use the same set of IDs for compatibility.
 #[allow(non_camel_case_types)]
-#[derive(Debug, Copy, Clone, Sequence)]
+#[derive(Debug, Copy, Clone, Sequence, FromPrimitive, PartialEq, Eq, PartialOrd, Ord)]
 pub enum HelperFunctionID {
     /* Print/debug helper functions */
     BPF_PRINTF_IDX = 0x01,
