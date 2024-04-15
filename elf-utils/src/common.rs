@@ -132,7 +132,7 @@ pub fn get_section_header<'a>(
 pub fn get_section_offset(
     section_name: &str,
     binary: &Elf<'_>,
-    binary_buffer: &[u8],
+    _binary_buffer: &[u8],
 ) -> Result<u64, String> {
     for section in &binary.section_headers {
         if Some(section_name) == binary.strtab.get_at(section.sh_name) {

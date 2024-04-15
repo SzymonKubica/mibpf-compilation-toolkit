@@ -6,7 +6,7 @@ use log::{debug, error};
 
 use crate::{
     common::{
-        find_relocations, get_section_reference_mut, CALL_OPCODE, INSTRUCTION_SIZE,
+        find_relocations, CALL_OPCODE, INSTRUCTION_SIZE,
         LDDW_INSTRUCTION_SIZE, LDDW_OPCODE,
     },
     model::{Call, Lddw},
