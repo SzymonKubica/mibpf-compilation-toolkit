@@ -83,14 +83,3 @@ pub async fn execute(
 
     Ok(response)
 }
-
-fn encode(available_indices: &[u8]) -> [u8; 3] {
-    let mut encoding = [0; 3];
-    for i in available_indices {
-        // The first 8 helpers are configured by the first u8, the next
-        // by the second one and so on.
-        let bucket = (i / 8) as usize;
-        encoding[bucket] |= 1 << (i % 8);
-    }
-    return encoding;
-}

@@ -1,4 +1,4 @@
-use std::{error, process::Command};
+use std::{process::Command};
 
 use log::{debug, error};
 
