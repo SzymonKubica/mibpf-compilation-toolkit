@@ -324,7 +324,7 @@ async fn handle_deploy(args: &Action, use_env: bool) -> Result<(), String> {
         helper_indices.to_vec(),
         helper_access_verification,
         helper_access_list_source,
-        *erase
+        *erase,
     )
     .await
 }

@@ -236,6 +236,7 @@ pub async fn deploy_test_script(
         allowed_helpers,
         HelperAccessVerification::AheadOfTime,
         HelperAccessListSource::ExecuteRequest,
+        true,
     )
     .await
 }
