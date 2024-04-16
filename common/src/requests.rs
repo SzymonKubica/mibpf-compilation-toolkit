@@ -123,30 +123,61 @@ pub struct SuitPullRequest {
     pub config: u8,
     /// Encoded list of allowed helpers
     pub helpers: String,
+    /// Whether the request is allowed to overwrite the program currently present
+    /// in the SUIT storage slot.
+    pub erase: bool,
 }
 
 impl SuitPullRequest {
     pub fn encode(&self) -> String {
+        // We remove the redundant colons as we will be able to reconstruct the
+        // IPv6 address from the encoded string
+        let encoded_ip: String = self.ip.chars().filter(|c| *c != ':').collect();
+
         return format!(
-            "{}|{}|{}|{}|{}",
-            self.ip, self.manifest, self.riot_netif, self.config, self.helpers
+            "{}|{}|{}|{}|{}|{}",
+            encoded_ip, self.manifest, self.riot_netif, self.config, self.helpers, self.erase as u8,
         );
     }
 
     pub fn decode(data: String) -> Result<SuitPullRequest, String> {
         let data = data.split('|').collect::<Vec<&str>>();
 
-        if data.len() != 5 {
+        if data.len() != 6 {
             return Err("Invalid number of sections in the request".to_string());
         }
 
+        let parse_bool = |s| s == "1";
+        let parse_ip = |s: String| {
+            let parts: Vec<String> = (0..s.len())
+                .into_iter()
+                .step_by(4)
+                .map(|i| String::from(&s[i..i + 4]))
+                .collect::<Vec<String>>();
+
+            let mut parts_iter = parts.iter();
+            let mut output = parts_iter.next().unwrap().clone();
+
+            output.push_str("::");
+
+            let tail = parts_iter
+                .map(|s| s.clone())
+                .collect::<Vec<String>>()
+                .join(":");
+
+            output.push_str(&tail);
+            output
+
+        };
+
         Ok(SuitPullRequest {
-            ip: data[0].to_string(),
+            ip: parse_ip(data[0].to_string()),
             manifest: data[1].to_string(),
             riot_netif: data[2].to_string(),
             config: u8::from_str_radix(data[3], 10)
                 .map_err(|e| format!("Unable to parse: {}", e))?,
             helpers: data[4].to_string(),
+            erase: parse_bool(data[5]),
         })
     }
 }

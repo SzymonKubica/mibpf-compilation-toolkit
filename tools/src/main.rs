@@ -117,6 +117,7 @@ async fn handle_pull(args: &Action, use_env: bool) -> Result<(), String> {
         helper_indices,
         helper_access_verification,
         helper_access_list_source,
+        erase,
     } = args
     else {
         return Err(format!("Invalid subcommand args: {:?}", args));
@@ -144,6 +145,7 @@ async fn handle_pull(args: &Action, use_env: bool) -> Result<(), String> {
             helper_access_verification,
             helper_access_list_source,
             helper_indices,
+            *erase,
         )
         .await;
     }
@@ -160,6 +162,7 @@ async fn handle_pull(args: &Action, use_env: bool) -> Result<(), String> {
         helper_access_verification,
         helper_access_list_source,
         helper_indices,
+        *erase,
     )
     .await
 }
@@ -268,6 +271,7 @@ async fn handle_deploy(args: &Action, use_env: bool) -> Result<(), String> {
         helper_access_verification,
         helper_access_list_source,
         target,
+        erase,
     } = args
     else {
         return Err(format!("Invalid subcommand args: {:?}", args));
@@ -299,6 +303,7 @@ async fn handle_deploy(args: &Action, use_env: bool) -> Result<(), String> {
             helper_indices.to_vec(),
             helper_access_verification,
             helper_access_list_source,
+            *erase,
         )
         .await;
     }
@@ -319,6 +324,7 @@ async fn handle_deploy(args: &Action, use_env: bool) -> Result<(), String> {
         helper_indices.to_vec(),
         helper_access_verification,
         helper_access_list_source,
+        *erase
     )
     .await
 }

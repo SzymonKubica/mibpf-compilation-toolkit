@@ -19,6 +19,7 @@ pub async fn pull(
     helper_access_verification: HelperAccessVerification,
     helper_access_list_source: HelperAccessListSource,
     helper_indices: &[u8],
+    erase: bool,
 ) -> Result<(), String> {
     let url = format!(
         "coap://[{}%{}]/suit/pull",
@@ -49,6 +50,7 @@ pub async fn pull(
             .iter()
             .map(|i| format!("{:02x}", i))
             .collect::<String>(),
+        erase
     };
 
     let req_str = request.encode();

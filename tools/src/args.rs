@@ -116,6 +116,9 @@ pub enum Action {
         helper_access_verification: String,
         #[arg(long, default_value_t = String::from("ExecuteRequest"))]
         helper_access_list_source: String,
+
+        #[arg(long, default_value_t = false)]
+        erase: bool,
     },
     /// Compiles, signs and initiates firmware pull in one step.
     Deploy {
@@ -180,6 +183,8 @@ pub enum Action {
         helper_access_verification: String,
         #[arg(long, default_value_t = String::from("ExecuteRequest"))]
         helper_access_list_source: String,
+        #[arg(long, default_value_t = false)]
+        erase: bool,
     },
     /// Sends a request to the RIOT instance to execute the loaded eBPF bytecode
     /// from a specified SUIT storage slot.
