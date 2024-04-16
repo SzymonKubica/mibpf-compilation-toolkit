@@ -68,7 +68,7 @@ impl Into<Vec<u8>> for Binary {
 }
 
 /// A header that is appended at the start of the generated binary. Contains
-/// information about the length of the correspoinding sections in the binary
+/// information about the length of the corresponding sections in the binary
 /// so that the VM executing the code can access the .rodata and .data sections
 /// properly.
 ///
@@ -161,14 +161,6 @@ pub fn assemble_binary_specifying_helpers(
     };
 
     let assembled_program: Vec<u8> = output_binary.into();
-    let available_helpers: Vec<u32> = allowed_helpers.iter().map(|id| *id as u32).collect();
-
-    rbpf::check_helpers(
-        &assembled_program,
-        &available_helpers,
-        rbpf::InterpreterVariant::ExtendedHeader,
-    )
-    .map_err(|e| format!("Invalid helper configuration: {:?}", e))?;
     Ok(assembled_program)
 }
 
@@ -296,6 +288,37 @@ pub fn resolve_rodata_relocations(
         }
 
         patch_text(text, binary, relocation, &str_section_offsets);
+    }
+}
+
+/// Responsible for extracting the allowed helper function indices that are
+/// specified at the end of the program binary.
+///
+/// Note: This can only be used if the input slice of bytes comes from a program
+/// which has been preprocessed with the [`mibpf_common::BinaryFileLayout:ExtendedHeader`]
+pub fn extract_allowed_helpers(prog: &[u8]) -> Vec<u8> {
+    const FUNCTION_STRUCT_SIZE: u32 = 6;
+    const RELOCATED_CALL_STRUCT_SIZE: u32 = 8;
+
+    let header_size = 32;
+
+    unsafe {
+        let header = prog.as_ptr() as *const Header;
+
+        let allowed_helpers_offset: u32 = header_size
+            + (*header).data_len
+            + (*header).rodata_len
+            + (*header).text_len
+            + (*header).functions_len * FUNCTION_STRUCT_SIZE
+            + (*header).relocated_calls * RELOCATED_CALL_STRUCT_SIZE;
+
+        let mut allowed_helpers = Vec::new();
+        for byte in &prog[allowed_helpers_offset as usize..] {
+            allowed_helpers.push(*byte);
+        }
+        debug!("Allowed helpers: {:?}", allowed_helpers);
+
+        allowed_helpers
     }
 }
 

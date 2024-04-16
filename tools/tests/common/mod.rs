@@ -1,7 +1,10 @@
 use enum_iterator::all;
 use mibpf_tools::{self, deploy, execute, Environment};
 
-use mibpf_common::{BinaryFileLayout, ExecutionModel, TargetVM, HelperFunctionID};
+use mibpf_common::{
+    BinaryFileLayout, ExecutionModel, HelperAccessListSource, HelperAccessVerification,
+    HelperFunctionID, TargetVM,
+};
 use serde::Deserialize;
 
 pub async fn test_execution(
@@ -10,7 +13,9 @@ pub async fn test_execution(
     environment: &Environment,
 ) {
     // By default all helpers are allowed
-    let available_helpers = all::<HelperFunctionID>().map(|e| e as u8).collect::<Vec<u8>>();
+    let available_helpers = all::<HelperFunctionID>()
+        .map(|e| e as u8)
+        .collect::<Vec<u8>>();
     test_execution_specifying_helpers(
         test_program,
         layout,
@@ -27,7 +32,9 @@ pub async fn test_execution_femtocontainer_vm(
     environment: &Environment,
 ) {
     // By default all helpers are allowed
-    let available_helpers = all::<HelperFunctionID>().map(|e| e as u8).collect::<Vec<u8>>();
+    let available_helpers = all::<HelperFunctionID>()
+        .map(|e| e as u8)
+        .collect::<Vec<u8>>();
     test_execution_specifying_helpers(
         test_program,
         layout,
@@ -77,7 +84,9 @@ pub async fn benchmark_execution(
     environment: &Environment,
 ) {
     // By default all helpers are allowed
-    let available_helpers = all::<HelperFunctionID>().map(|e| e as u8).collect::<Vec<u8>>();
+    let available_helpers = all::<HelperFunctionID>()
+        .map(|e| e as u8)
+        .collect::<Vec<u8>>();
     // We first deploy the program on the tested microcontroller
     let result = deploy_test_script(test_program, layout, environment, available_helpers).await;
     if let Err(string) = &result {
@@ -93,7 +102,9 @@ pub async fn benchmark_execution(
 
     // when executing a different helper encoding is used.
 
-    let available_helpers = all::<HelperFunctionID>().map(|e| e as u8).collect::<Vec<u8>>();
+    let available_helpers = all::<HelperFunctionID>()
+        .map(|e| e as u8)
+        .collect::<Vec<u8>>();
     let response = execute(
         &environment.riot_instance_ip,
         TargetVM::Rbpf,
@@ -101,6 +112,8 @@ pub async fn benchmark_execution(
         0,
         &environment.host_net_if,
         ExecutionModel::Benchmark,
+        HelperAccessVerification::AheadOfTime,
+        HelperAccessListSource::ExecuteRequest,
         &available_helpers,
     )
     .await
@@ -128,7 +141,9 @@ pub async fn test_execution_accessing_coap_pkt_femtocontainer_vm(
     environment: &Environment,
 ) {
     // By default all helpers are allowed
-    let available_helpers = all::<HelperFunctionID>().map(|e| e as u8).collect::<Vec<u8>>();
+    let available_helpers = all::<HelperFunctionID>()
+        .map(|e| e as u8)
+        .collect::<Vec<u8>>();
     test_execution_accessing_coap_pkt_specifying_helpers(
         test_program,
         layout,
@@ -145,7 +160,9 @@ pub async fn test_execution_accessing_coap_pkt(
     environment: &Environment,
 ) {
     // By default all helpers are allowed
-    let available_helpers = all::<HelperFunctionID>().map(|e| e as u8).collect::<Vec<u8>>();
+    let available_helpers = all::<HelperFunctionID>()
+        .map(|e| e as u8)
+        .collect::<Vec<u8>>();
     test_execution_accessing_coap_pkt_specifying_helpers(
         test_program,
         layout,
@@ -178,7 +195,8 @@ pub async fn test_execution_accessing_coap_pkt_specifying_helpers(
 
     // Then we request execution and check that the return value is what we
     // expected
-    let execution_result = execute_deployed_program_on_coap(0, layout, target_vm, environment).await;
+    let execution_result =
+        execute_deployed_program_on_coap(0, layout, target_vm, environment).await;
     if let Err(string) = &execution_result {
         println!("{}", string);
     }
@@ -205,6 +223,7 @@ pub async fn deploy_test_script(
     deploy(
         &file_path,
         &out_dir,
+        TargetVM::Rbpf,
         layout,
         &environment.coap_root_dir,
         0,
@@ -213,8 +232,10 @@ pub async fn deploy_test_script(
         &environment.host_net_if,
         &environment.host_ip,
         &environment.board_name,
-        Some(&environment.mibpf_root_dir),
+        Some(environment.mibpf_root_dir.as_str()),
         allowed_helpers,
+        HelperAccessVerification::AheadOfTime,
+        HelperAccessListSource::ExecuteRequest,
     )
     .await
 }
@@ -271,7 +292,9 @@ pub async fn execute_deployed_program_on_coap(
     environment: &Environment,
 ) -> Result<String, String> {
     // We allow all helpers
-    let available_helpers = all::<HelperFunctionID>().map(|e| e as u8).collect::<Vec<u8>>();
+    let available_helpers = all::<HelperFunctionID>()
+        .map(|e| e as u8)
+        .collect::<Vec<u8>>();
     let response = execute(
         &environment.riot_instance_ip,
         target_vm,
@@ -279,6 +302,8 @@ pub async fn execute_deployed_program_on_coap(
         suit_storage_slot,
         &environment.host_net_if,
         ExecutionModel::WithAccessToCoapPacket,
+        HelperAccessVerification::AheadOfTime,
+        HelperAccessListSource::ExecuteRequest,
         &available_helpers,
     )
     .await?;
@@ -303,6 +328,8 @@ pub async fn execute_deployed_program_specifying_helpers(
         suit_storage_slot,
         &environment.host_net_if,
         ExecutionModel::ShortLived,
+        HelperAccessVerification::AheadOfTime,
+        HelperAccessListSource::ExecuteRequest,
         &available_helpers,
     )
     .await?;
@@ -330,7 +357,9 @@ pub async fn execute_deployed_program(
     target_vm: TargetVM,
     environment: &Environment,
 ) -> Result<i32, String> {
-    let available_helpers = all::<HelperFunctionID>().map(|e| e as u8).collect::<Vec<u8>>();
+    let available_helpers = all::<HelperFunctionID>()
+        .map(|e| e as u8)
+        .collect::<Vec<u8>>();
     execute_deployed_program_specifying_helpers(
         suit_storage_slot,
         layout,

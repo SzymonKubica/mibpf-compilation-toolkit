@@ -4,7 +4,7 @@ use std::{
     process::Command,
 };
 
-use mibpf_common::{BinaryFileLayout, HelperAccessListSource, HelperAccessVerification};
+use mibpf_common::{BinaryFileLayout, HelperAccessVerification};
 use mibpf_elf_utils::{
     assemble_binary_specifying_helpers, assemble_femtocontainer_binary, extract_section,
 };
@@ -19,12 +19,6 @@ pub fn apply_postprocessing(
     helper_indices: Vec<u8>,
     helper_access_verification: HelperAccessVerification,
 ) -> Result<(), String> {
-    // When we want to perform relocations on the actual target device, we
-    // only need to strip off the redundant information from the object file.
-    if binary_layout == BinaryFileLayout::RawObjectFile {
-        strip_binary(&source_object_file, Some(&output_file_name.to_string()))?;
-    }
-
     let processed_program_bytes = match binary_layout {
         BinaryFileLayout::OnlyTextSection => {
             let program_bytes = read_bytes_from_file(source_object_file);
@@ -42,7 +36,10 @@ pub fn apply_postprocessing(
             let relocated_program = assemble_femtocontainer_binary(&program_bytes)?;
             relocated_program
         }
-        BinaryFileLayout::RawObjectFile => read_bytes_from_file(output_file_name),
+        BinaryFileLayout::RawObjectFile => {
+            strip_binary(&source_object_file, Some(&output_file_name.to_string()))?;
+            read_bytes_from_file(output_file_name)
+        }
     };
 
     if helper_access_verification == HelperAccessVerification::AheadOfTime {
@@ -67,7 +64,6 @@ pub fn map_interpreter(layout: BinaryFileLayout) -> rbpf::InterpreterVariant {
         BinaryFileLayout::OnlyTextSection => rbpf::InterpreterVariant::Default,
     }
 }
-
 
 fn write_binary(bytes: &[u8], destination: &str) -> Result<(), String> {
     let Ok(mut f) = File::create(destination) else {
