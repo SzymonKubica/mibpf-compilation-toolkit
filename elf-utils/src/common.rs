@@ -82,41 +82,6 @@ pub fn extract_section<'a>(
     return Err("Section not found".to_string());
 }
 
-/// Given the section offset and length information contained in the SectionHeader
-/// it returns a mutable slice corresponding to the section data.
-pub fn get_section_reference_mut<'a>(
-    section: &SectionHeader,
-    program: &'a mut [u8],
-) -> &'a mut [u8] {
-    let section_start = section.sh_offset as usize;
-    let section_end = (section.sh_offset + section.sh_size) as usize;
-    &mut program[section_start..section_end]
-}
-
-/// Extracts a mutable reference to a section with a given name from the ELF binary.
-/// See [`extract_section`] for more details.
-pub fn extract_section_mut<'a>(
-    section_name: &'static str,
-    program: &'a mut [u8],
-) -> Result<&'a mut [u8], String> {
-    let Ok(binary) = goblin::elf::Elf::parse(&program) else {
-        return Err("Failed to parse the ELF binary".to_string());
-    };
-
-    for section in &binary.section_headers {
-        if let Some(name) = binary.strtab.get_at(section.sh_name) {
-            debug!("Section name: {}", name);
-            if name == section_name {
-                let section_start = section.sh_offset as usize;
-                let section_end = (section.sh_offset + section.sh_size) as usize;
-                return Ok(&mut program[section_start..section_end]);
-            }
-        }
-    }
-
-    return Err("Section not found".to_string());
-}
-
 pub fn get_section_header<'a>(
     section_name: &str,
     binary: &'a Elf<'_>,
@@ -129,18 +94,6 @@ pub fn get_section_header<'a>(
     Err("Section not found".to_string())
 }
 
-pub fn get_section_offset(
-    section_name: &str,
-    binary: &Elf<'_>,
-    _binary_buffer: &[u8],
-) -> Result<u64, String> {
-    for section in &binary.section_headers {
-        if Some(section_name) == binary.strtab.get_at(section.sh_name) {
-            return Ok(section.sh_offset);
-        }
-    }
-    Err("Section not found".to_string())
-}
 
 /// Copies the bytes contained in a specific section in the ELF file.
 pub fn get_section_bytes(section_name: &str, binary: &Elf<'_>, binary_buffer: &[u8]) -> Vec<u8> {

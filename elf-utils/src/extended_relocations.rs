@@ -1,7 +1,6 @@
 use alloc::{
     collections::btree_map::BTreeMap as HashMap,
     ffi::CString,
-    format,
     string::{String, ToString},
     vec::Vec,
 };
