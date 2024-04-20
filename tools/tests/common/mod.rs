@@ -26,6 +26,24 @@ pub async fn test_execution(
     .await;
 }
 
+pub async fn test_jit_execution(
+    test_program: &str,
+    layout: BinaryFileLayout,
+    environment: &Environment,
+) {
+    // By default all helpers are allowed
+    let available_helpers = all::<HelperFunctionID>()
+        .map(|e| e as u8)
+        .collect::<Vec<u8>>();
+    test_jit_execution_specifying_helpers(
+        test_program,
+        layout,
+        TargetVM::Rbpf,
+        environment,
+        available_helpers,
+    )
+    .await;
+}
 pub async fn test_execution_femtocontainer_vm(
     test_program: &str,
     layout: BinaryFileLayout,
@@ -43,6 +61,39 @@ pub async fn test_execution_femtocontainer_vm(
         available_helpers,
     )
     .await;
+}
+
+pub async fn test_jit_execution_specifying_helpers(
+    test_program: &str,
+    layout: BinaryFileLayout,
+    target_vm: TargetVM,
+    environment: &Environment,
+    available_helpers: Vec<u8>,
+) {
+    // We first deploy the program on the tested microcontroller
+    let result = deploy_test_script(test_program, layout, environment, available_helpers).await;
+    if let Err(string) = &result {
+        println!("{}", string);
+    }
+    assert!(result.is_ok());
+
+    // When running on embedded targets we need to give them enough time
+    // to fetch the firmware
+    if environment.board_name != "native" {
+        std::thread::sleep(std::time::Duration::from_secs(1));
+    }
+
+    // Then we request execution and check that the return value is what we
+    // expected
+    let execution_result = execute_deployed_program(0, layout, target_vm, environment, true).await;
+    if let Err(string) = &execution_result {
+        println!("{}", string);
+    }
+    assert!(execution_result.is_ok());
+    let return_value = execution_result.unwrap();
+
+    let expected_return = extract_expected_return(test_program);
+    assert!(return_value == expected_return);
 }
 
 pub async fn test_execution_specifying_helpers(
@@ -67,7 +118,7 @@ pub async fn test_execution_specifying_helpers(
 
     // Then we request execution and check that the return value is what we
     // expected
-    let execution_result = execute_deployed_program(0, layout, target_vm, environment).await;
+    let execution_result = execute_deployed_program(0, layout, target_vm, environment, false).await;
     if let Err(string) = &execution_result {
         println!("{}", string);
     }
@@ -77,6 +128,8 @@ pub async fn test_execution_specifying_helpers(
     let expected_return = extract_expected_return(test_program);
     assert!(return_value == expected_return);
 }
+
+
 
 pub async fn benchmark_execution(
     test_program: &str,
@@ -115,6 +168,7 @@ pub async fn benchmark_execution(
         HelperAccessVerification::AheadOfTime,
         HelperAccessListSource::ExecuteRequest,
         &available_helpers,
+        false,
     )
     .await
     .unwrap();
@@ -150,6 +204,7 @@ pub async fn test_execution_accessing_coap_pkt_femtocontainer_vm(
         TargetVM::FemtoContainer,
         environment,
         available_helpers,
+        false
     )
     .await
 }
@@ -169,6 +224,7 @@ pub async fn test_execution_accessing_coap_pkt(
         TargetVM::Rbpf,
         environment,
         available_helpers,
+        false,
     )
     .await
 }
@@ -179,6 +235,7 @@ pub async fn test_execution_accessing_coap_pkt_specifying_helpers(
     target_vm: TargetVM,
     environment: &Environment,
     available_helpers: Vec<u8>,
+    jit: bool,
 ) {
     // We first deploy the program on the tested microcontroller
     let result = deploy_test_script(test_program, layout, environment, available_helpers).await;
@@ -196,7 +253,7 @@ pub async fn test_execution_accessing_coap_pkt_specifying_helpers(
     // Then we request execution and check that the return value is what we
     // expected
     let execution_result =
-        execute_deployed_program_on_coap(0, layout, target_vm, environment).await;
+        execute_deployed_program_on_coap(0, layout, target_vm, environment, jit).await;
     if let Err(string) = &execution_result {
         println!("{}", string);
     }
@@ -291,6 +348,7 @@ pub async fn execute_deployed_program_on_coap(
     layout: BinaryFileLayout,
     target_vm: TargetVM,
     environment: &Environment,
+    jit: bool,
 ) -> Result<String, String> {
     // We allow all helpers
     let available_helpers = all::<HelperFunctionID>()
@@ -306,6 +364,7 @@ pub async fn execute_deployed_program_on_coap(
         HelperAccessVerification::AheadOfTime,
         HelperAccessListSource::ExecuteRequest,
         &available_helpers,
+        jit,
     )
     .await?;
 
@@ -321,6 +380,7 @@ pub async fn execute_deployed_program_specifying_helpers(
     target_vm: TargetVM,
     environment: &Environment,
     available_helpers: Vec<u8>,
+    jit: bool,
 ) -> Result<i32, String> {
     let response = execute(
         &environment.riot_instance_ip,
@@ -332,6 +392,7 @@ pub async fn execute_deployed_program_specifying_helpers(
         HelperAccessVerification::AheadOfTime,
         HelperAccessListSource::ExecuteRequest,
         &available_helpers,
+        jit,
     )
     .await?;
 
@@ -357,6 +418,7 @@ pub async fn execute_deployed_program(
     layout: BinaryFileLayout,
     target_vm: TargetVM,
     environment: &Environment,
+    jit: bool,
 ) -> Result<i32, String> {
     let available_helpers = all::<HelperFunctionID>()
         .map(|e| e as u8)
@@ -367,6 +429,7 @@ pub async fn execute_deployed_program(
         target_vm,
         environment,
         available_helpers,
+        jit,
     )
     .await
 }

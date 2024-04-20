@@ -227,6 +227,9 @@ pub enum Action {
         helper_access_verification: String,
         #[arg(long, default_value_t = String::from("ExecuteRequest"))]
         helper_access_list_source: String,
+
+        #[arg(short)]
+        jit: bool
     },
 }
 

@@ -18,6 +18,7 @@ pub async fn execute(
     helper_access_verification: HelperAccessVerification,
     helper_access_list_source: HelperAccessListSource,
     helper_indices: &[u8],
+    jit: bool,
 ) -> Result<String, String> {
     // If the user doesn't specify any allowed helper indices, we allow all of them
     // by default.
@@ -46,8 +47,10 @@ pub async fn execute(
 
     let url = match execution_model {
         ExecutionModel::ShortLived => format!(
-            "coap://[{}%{}]/vm/exec",
-            riot_ipv6_addr, host_network_interface
+            "coap://[{}%{}]/{}/exec",
+            riot_ipv6_addr,
+            host_network_interface,
+            if jit { "jit" } else { "vm" }
         ),
         ExecutionModel::WithAccessToCoapPacket => {
             format!(

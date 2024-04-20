@@ -177,6 +177,7 @@ async fn handle_execute(args: &Action, use_env: bool) -> Result<(), String> {
         helper_indices,
         helper_access_verification,
         helper_access_list_source,
+        jit,
     } = args
     else {
         return Err(format!("Invalid subcommand args: {:?}", args));
@@ -202,6 +203,7 @@ async fn handle_execute(args: &Action, use_env: bool) -> Result<(), String> {
             helper_access_verification,
             helper_access_list_source,
             helper_indices,
+            *jit,
         )
         .await?
     } else {
@@ -215,6 +217,7 @@ async fn handle_execute(args: &Action, use_env: bool) -> Result<(), String> {
             helper_access_verification,
             helper_access_list_source,
             helper_indices,
+            *jit,
         )
         .await?
     };
@@ -289,7 +292,7 @@ async fn handle_deploy(args: &Action, use_env: bool) -> Result<(), String> {
 
         return deploy(
             bpf_source_file,
-            out_dir,
+            &env.out_dir,
             target_vm,
             binary_layout,
             &env.coap_root_dir,
