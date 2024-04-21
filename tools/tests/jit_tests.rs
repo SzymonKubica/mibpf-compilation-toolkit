@@ -27,6 +27,11 @@ async fn jit_add_reg() {
 }
 
 #[tokio::test]
+async fn jit_multiply_reg() {
+    test_jit("jit_multiply-reg.c").await;
+}
+
+#[tokio::test]
 async fn jit_subtract_reg() {
     test_jit("jit_subtract-reg.c").await;
 }
