@@ -1,7 +1,6 @@
-// TEST_RESULT: 123
+// TEST_RESULT: -32
 #include <stdint.h>
-int basic_add(void *ctx) {
-    volatile int x = 100;
-    int y = 23;
-    return x + y;
+int asr_immediate(void *ctx) {
+    volatile int8_t x = -64;
+    return x >> 1;
 }

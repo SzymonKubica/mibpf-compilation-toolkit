@@ -8,19 +8,51 @@ use mibpf_common::BinaryFileLayout;
 
 /* Tests for basic arithmetic / logical instructions using immediate operands */
 #[tokio::test]
-async fn jit_add() {
+async fn jit_add_immediate() {
     test_jit("jit_add-immediate.c").await;
 }
 
 #[tokio::test]
-async fn jit_subtract() {
+async fn jit_subtract_immediate() {
     test_jit("jit_subtract-immediate.c").await;
 }
 
 #[tokio::test]
-async fn jit_multiply() {
+async fn jit_multiply_immediate() {
     test_jit("jit_multiply-immediate.c").await;
 }
+
+
+#[ignore] // Ignored until we have better support for negative numbers.
+#[tokio::test]
+async fn jit_asr() {
+    test_jit("jit_asr-immediate.c").await;
+}
+
+#[tokio::test]
+async fn jit_lsl_immediate() {
+    test_jit("jit_lsl-immediate.c").await;
+}
+
+#[tokio::test]
+async fn jit_lsr_immediate() {
+    test_jit("jit_lsr-immediate.c").await;
+}
+
+#[tokio::test]
+async fn jit_and_immediate() {
+    test_jit("jit_and-immediate.c").await;
+}
+#[tokio::test]
+async fn jit_or_immediate() {
+    test_jit("jit_or-immediate.c").await;
+}
+#[tokio::test]
+async fn jit_xor_immediate() {
+    test_jit("jit_xor-immediate.c").await;
+}
+
+
 
 // TODO:
 // divide (later)

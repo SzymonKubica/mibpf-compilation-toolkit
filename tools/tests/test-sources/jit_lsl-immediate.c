@@ -1,7 +1,6 @@
-// TEST_RESULT: 123
+// TEST_RESULT: 52
 #include <stdint.h>
-int basic_add(void *ctx) {
-    volatile int x = 100;
-    int y = 23;
-    return x + y;
+int lsl_immediate(void *ctx) {
+    volatile int x = 13;
+    return x << 2;
 }
