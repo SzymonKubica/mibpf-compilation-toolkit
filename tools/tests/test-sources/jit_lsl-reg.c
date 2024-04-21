@@ -1,4 +1,4 @@
-// TEST_RESULT: 16
+// TEST_RESULT: 32
 #include <stdint.h>
 int lsl_reg(void *ctx) {
     volatile int x = 4;
