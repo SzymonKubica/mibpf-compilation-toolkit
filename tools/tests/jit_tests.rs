@@ -12,8 +12,29 @@ async fn jit_add() {
 }
 
 #[tokio::test]
+async fn jit_subtract() {
+    test_jit("jit_basic-subtract.c").await;
+}
+
+#[tokio::test]
+async fn jit_multiply() {
+    test_jit("jit_basic-multiply.c").await;
+}
+
+#[tokio::test]
 async fn jit_add_reg() {
     test_jit("jit_add-reg.c").await;
+}
+
+#[tokio::test]
+async fn jit_subtract_reg() {
+    test_jit("jit_subtract-reg.c").await;
+}
+
+#[ignore]
+#[tokio::test]
+async fn jit_fletcher() {
+    test_jit("jit_fletcher32_checksum.c").await;
 }
 
 
