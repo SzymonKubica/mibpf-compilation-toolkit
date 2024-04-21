@@ -99,6 +99,20 @@ async fn jit_xor_reg() {
     test_jit("jit_xor-reg.c").await;
 }
 
+/* Tests for load / store operations for various data sizes */
+#[tokio::test]
+async fn jit_load_store_byte_immediate() {
+    test_jit("jit_load-store-byte-immediate.c").await;
+}
+#[tokio::test]
+async fn jit_load_store_halfword_immediate() {
+    test_jit("jit_load-store-halfword-immediate.c").await;
+}
+#[tokio::test]
+async fn jit_load_store_word_immediate() {
+    test_jit("jit_load-store-word-immediate.c").await;
+}
+
 async fn test_jit(test_program: &str) {
     let env = load_env();
     test_jit_execution(test_program, BinaryFileLayout::OnlyTextSection, &env).await;
