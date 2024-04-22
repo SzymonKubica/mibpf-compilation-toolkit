@@ -120,6 +120,10 @@ async fn jit_jump_eq() {
     test_jit("jit_jump-eq.c").await;
 }
 #[tokio::test]
+async fn jit_jump_ne() {
+    test_jit("jit_jump-ne.c").await;
+}
+#[tokio::test]
 async fn jit_jump_ge() {
     test_jit("jit_jump-ge.c").await;
 }
@@ -135,11 +139,29 @@ async fn jit_jump_le() {
 async fn jit_jump_lt() {
     test_jit("jit_jump-lt.c").await;
 }
-// Register comparison
+#[tokio::test]
+async fn jit_jump_sge() {
+    test_jit("jit_jump-sge.c").await;
+}
+#[tokio::test]
+async fn jit_jump_sgt() {
+    test_jit("jit_jump-sgt.c").await;
+}
+#[ignore] // Ignored until ThumbExpandImm in cmp immediate 12 gets fixed
+#[tokio::test]
+async fn jit_jump_sle() {
+    test_jit("jit_jump-sle.c").await;
+}
+#[tokio::test]
+async fn jit_jump_slt() {
+    test_jit("jit_jump-slt.c").await;
+}
+// Immediate comparison, signed versions
 #[tokio::test]
 async fn jit_jump_ne_reg() {
     test_jit("jit_jump-ne-reg.c").await;
 }
+// Register comparison
 
 async fn test_jit(test_program: &str) {
     let env = load_env();
