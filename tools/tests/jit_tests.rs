@@ -113,6 +113,34 @@ async fn jit_load_store_word_immediate() {
     test_jit("jit_load-store-word-immediate.c").await;
 }
 
+/* Tests for conditional jumps */
+// Immediate comparison
+#[tokio::test]
+async fn jit_jump_eq() {
+    test_jit("jit_jump-eq.c").await;
+}
+#[tokio::test]
+async fn jit_jump_ge() {
+    test_jit("jit_jump-ge.c").await;
+}
+#[tokio::test]
+async fn jit_jump_gt() {
+    test_jit("jit_jump-gt.c").await;
+}
+#[tokio::test]
+async fn jit_jump_le() {
+    test_jit("jit_jump-le.c").await;
+}
+#[tokio::test]
+async fn jit_jump_lt() {
+    test_jit("jit_jump-lt.c").await;
+}
+// Register comparison
+#[tokio::test]
+async fn jit_jump_ne_reg() {
+    test_jit("jit_jump-ne-reg.c").await;
+}
+
 async fn test_jit(test_program: &str) {
     let env = load_env();
     test_jit_execution(test_program, BinaryFileLayout::OnlyTextSection, &env).await;

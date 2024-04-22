@@ -1,21 +1,13 @@
 // TEST_RESULT: 829540382
 #include "helpers.h"
 
-// A random 320B string
-const char DATA[] =
-    "46WgyN33S3oADXpVVIMX1ki2aMcO7fi8SN5HqvDtSJ6jqA96oHAKptpcAyxhVk4y"
-    "2qlIEQB4YqErDyXUwMVJnOJEFzrHT0MC2RuOcY9tLCImE7OXyAU7opoXfKmkw8e6"
-    "Q8Qm6wNAD7DHsBLYexQzXe2WDwADWaz6mENTwXqF6ZecRo2IyU9u93KFD3meVeIC"
-    "fDezW9OeqLIDjwQ7FnOGwjSEeCZAqlpXACKmw3G2lsMHhGm44pygbapiYvBrfCgG"
-    "UBNLhGdlUt9Hk0dCuBwAZjLu0pAf0ddJNicky8dUT9Zo6JNKkbrfuTU6cCfHe2nQ";
-
 // Fletcher 32 checksum algorithm taken from:
 // https://en.wikipedia.org/wiki/Fletcher%27s_checksum#:~:text=uint32_t%20fletcher32(const%20uint16_t%20*data%2C%20size_t%20len)
-uint32_t fletcher32_checksum()
+uint32_t fletcher32_checksum(void *ctx)
 {
     volatile uint16_t data[] = {0x12, 0x34, 0x56, 0x78, 0x9A, 0xBC, 0xDE, 0xF0};
 
-    size_t len = (7 + 1) & ~1; /* Round up len to words */
+    uint32_t len = (7 + 1) & ~1; /* Round up len to words */
     //bpf_printf("Length of the checksummed data: %d\n", len);
 
     uint32_t c0 = 0;
