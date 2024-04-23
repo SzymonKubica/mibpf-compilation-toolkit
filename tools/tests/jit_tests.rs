@@ -16,6 +16,10 @@ async fn jit_multiply_immediate() {
     test_jit("jit_multiply-immediate.c").await;
 }
 #[tokio::test]
+async fn jit_divide_immediate() {
+    test_jit("jit_divide-immediate.c").await;
+}
+#[tokio::test]
 async fn jit_subtract_immediate() {
     test_jit("jit_subtract-immediate.c").await;
 }
@@ -45,16 +49,6 @@ async fn jit_xor_immediate() {
     test_jit("jit_xor-immediate.c").await;
 }
 
-// TODO:
-// divide (later)
-// mod (later)
-// lsl
-// lsr
-// asr
-// and
-// or
-// xor
-
 /* Tests for basic arithmetic / logical instructions operating on registers */
 #[tokio::test]
 async fn jit_add_reg() {
@@ -63,6 +57,10 @@ async fn jit_add_reg() {
 #[tokio::test]
 async fn jit_multiply_reg() {
     test_jit("jit_multiply-reg.c").await;
+}
+#[tokio::test]
+async fn jit_divide_reg() {
+    test_jit("jit_divide-reg.c").await;
 }
 #[tokio::test]
 async fn jit_subtract_reg() {
@@ -161,7 +159,7 @@ async fn jit_jump_slt() {
 async fn jit_jump_ne_reg() {
     test_jit("jit_jump-ne-reg.c").await;
 }
-// Register comparison
+// Register comparison: TODO:
 
 async fn test_jit(test_program: &str) {
     let env = load_env();
