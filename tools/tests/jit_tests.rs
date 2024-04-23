@@ -20,6 +20,10 @@ async fn jit_divide_immediate() {
     test_jit("jit_divide-immediate.c").await;
 }
 #[tokio::test]
+async fn jit_mod_immediate() {
+    test_jit("jit_mod-immediate.c").await;
+}
+#[tokio::test]
 async fn jit_subtract_immediate() {
     test_jit("jit_subtract-immediate.c").await;
 }
@@ -61,6 +65,10 @@ async fn jit_multiply_reg() {
 #[tokio::test]
 async fn jit_divide_reg() {
     test_jit("jit_divide-reg.c").await;
+}
+#[tokio::test]
+async fn jit_mod_reg() {
+    test_jit("jit_mod-reg.c").await;
 }
 #[tokio::test]
 async fn jit_subtract_reg() {
