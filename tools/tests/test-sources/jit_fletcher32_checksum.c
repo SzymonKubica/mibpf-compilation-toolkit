@@ -8,7 +8,6 @@ uint32_t fletcher32_checksum(void *ctx)
     volatile uint16_t data[] = {0x12, 0x34, 0x56, 0x78, 0x9A, 0xBC, 0xDE, 0xF0};
 
     uint32_t len = (7 + 1) & ~1; /* Round up len to words */
-    //bpf_printf("Length of the checksummed data: %d\n", len);
 
     uint32_t c0 = 0;
     uint32_t c1 = 0;
@@ -28,6 +27,5 @@ uint32_t fletcher32_checksum(void *ctx)
         c1 = c1 % 65535;
     }
     uint32_t checksum = (c1 << 16 | c0);
-    //bpf_printf("Calculated the checksum: %u\n", checksum);
     return checksum;
 }
