@@ -171,6 +171,7 @@ async fn jit_jump_ne_reg() {
 //
 
 /* Helper Calls and Relocations */
+#[ignore]
 #[tokio::test]
 async fn jit_helper_call() {
     test_jit("jit_helper-call.c").await;

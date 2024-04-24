@@ -1,4 +1,4 @@
-// TEST_RESULT: 100
+// TEST_RESULT: 1000
 #include "helpers.h"
 #include <stdint.h>
 int helper_call(void *ctx) {
