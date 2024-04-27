@@ -170,18 +170,27 @@ async fn jit_jump_ne_reg() {
 // Register comparison: TODO:
 //
 
-/* Helper Calls and Relocations */
-#[tokio::test]
-async fn jit_helper_call() {
-    test_jit("jit_helper-call.c").await;
-}
-
+/* Control flow instructions and proper jump offsets */
 #[ignore]
 #[tokio::test]
 async fn jit_for_loop() {
     test_jit("jit_for-loop.c").await;
 }
+
+/* Helper Calls */
+#[tokio::test]
+async fn jit_helper_call() {
+    test_jit("jit_helper-call.c").await;
+}
+
+/* Accessing .data and .rodata */
+#[tokio::test]
+async fn jit_rodata() {
+    test_jit("jit_rodata.c").await;
+}
+
+
 async fn test_jit(test_program: &str) {
     let env = load_env();
-    test_jit_execution(test_program, BinaryFileLayout::OnlyTextSection, &env).await;
+    test_jit_execution(test_program, BinaryFileLayout::RawObjectFile, &env).await;
 }
