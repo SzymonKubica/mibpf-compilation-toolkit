@@ -23,6 +23,7 @@ uint32_t fletcher32_checksum()
     uint32_t c1 = 0;
 
     for (c0 = c1 = 0; len > 0;) {
+        bpf_printf("Length of the checksummed data: %d\n", len);
         uint32_t blocklen = len;
         if (blocklen > 360 * 2) {
             blocklen = 360 * 2;
