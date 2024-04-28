@@ -7,6 +7,10 @@ use mibpf_common::{
 };
 use serde::Deserialize;
 
+/// When communicating with target board sometimes it takes longer to get the request processed
+/// we need to wait a bit longer to give the device time to respons
+const NUCLEO_EXECUTION_REQUEST_TIMEOUT: u64 = 2;
+
 pub async fn test_execution(
     test_program: &str,
     layout: BinaryFileLayout,
@@ -80,7 +84,7 @@ pub async fn test_jit_execution_specifying_helpers(
     // When running on embedded targets we need to give them enough time
     // to fetch the firmware
     if environment.board_name != "native" {
-        std::thread::sleep(std::time::Duration::from_secs(1));
+        std::thread::sleep(std::time::Duration::from_secs(NUCLEO_EXECUTION_REQUEST_TIMEOUT));
     }
 
     // Then we request execution and check that the return value is what we
@@ -113,7 +117,7 @@ pub async fn test_execution_specifying_helpers(
     // When running on embedded targets we need to give them enough time
     // to fetch the firmware
     if environment.board_name != "native" {
-        std::thread::sleep(std::time::Duration::from_secs(1));
+        std::thread::sleep(std::time::Duration::from_secs(NUCLEO_EXECUTION_REQUEST_TIMEOUT));
     }
 
     // Then we request execution and check that the return value is what we
@@ -150,7 +154,7 @@ pub async fn benchmark_execution(
     // When running on embedded targets we need to give them enough time
     // to fetch the firmware
     if environment.board_name != "native" {
-        std::thread::sleep(std::time::Duration::from_secs(1));
+        std::thread::sleep(std::time::Duration::from_secs(NUCLEO_EXECUTION_REQUEST_TIMEOUT));
     }
 
     // when executing a different helper encoding is used.
@@ -246,7 +250,7 @@ pub async fn test_execution_accessing_coap_pkt_specifying_helpers(
     // When running on embedded targets we need to give them enough time
     // to fetch the firmware
     if environment.board_name != "native" {
-        std::thread::sleep(std::time::Duration::from_secs(1));
+        std::thread::sleep(std::time::Duration::from_secs(NUCLEO_EXECUTION_REQUEST_TIMEOUT));
     }
     assert!(result.is_ok());
 

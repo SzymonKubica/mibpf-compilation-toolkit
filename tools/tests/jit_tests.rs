@@ -79,6 +79,10 @@ async fn jit_fletcher() {
     test_jit("jit_fletcher32_checksum.c").await;
 }
 #[tokio::test]
+async fn jit_fletcher16() {
+    test_jit("jit_fletcher16_checksum.c").await;
+}
+#[tokio::test]
 async fn jit_asr_reg() {
     test_jit("jit_asr-reg.c").await;
 }
