@@ -27,7 +27,6 @@ async fn jit_mod_immediate() {
 async fn jit_subtract_immediate() {
     test_jit("jit_subtract-immediate.c").await;
 }
-#[ignore] // Ignored until we have better support for negative numbers.
 #[tokio::test]
 async fn jit_asr() {
     test_jit("jit_asr-immediate.c").await;
@@ -79,7 +78,6 @@ async fn jit_subtract_reg() {
 async fn jit_fletcher() {
     test_jit("jit_fletcher32_checksum.c").await;
 }
-#[ignore] // Ignored until we have better support for negative numbers.
 #[tokio::test]
 async fn jit_asr_reg() {
     test_jit("jit_asr-reg.c").await;
