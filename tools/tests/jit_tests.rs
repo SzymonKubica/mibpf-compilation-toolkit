@@ -171,10 +171,13 @@ async fn jit_jump_ne_reg() {
 //
 
 /* Control flow instructions and proper jump offsets */
-#[ignore]
 #[tokio::test]
 async fn jit_for_loop() {
     test_jit("jit_for-loop.c").await;
+}
+#[tokio::test]
+async fn jit_while_loop() {
+    test_jit("jit_while-loop.c").await;
 }
 
 /* Helper Calls */
