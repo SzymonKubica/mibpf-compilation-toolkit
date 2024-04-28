@@ -1,4 +1,4 @@
-// TEST_RESULT: 20
+// TEST_RESULT: 123
 #include <stdint.h>
 int jump_sgt(void *ctx) {
     // We need to use 16 bit ints here, otherwise lddw is used which is

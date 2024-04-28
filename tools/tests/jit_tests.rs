@@ -151,7 +151,6 @@ async fn jit_jump_sge() {
 async fn jit_jump_sgt() {
     test_jit("jit_jump-sgt.c").await;
 }
-#[ignore] // Ignored until ThumbExpandImm in cmp immediate 12 gets fixed
 #[tokio::test]
 async fn jit_jump_sle() {
     test_jit("jit_jump-sle.c").await;
