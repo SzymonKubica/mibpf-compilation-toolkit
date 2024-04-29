@@ -16,7 +16,6 @@ uint32_t fletcher_16(void *ctx)
     uint8_t *data = (uint8_t *)DATA;
 
     size_t len = (bpf_strlen(DATA) + 1) & ~1; /* Round up len to words */
-    bpf_printf("Length of the checksummed data: %d\n", len);
 
     uint16_t sum1 = 0;
     uint16_t sum2 = 0;

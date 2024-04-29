@@ -193,7 +193,6 @@ async fn jit_rodata() {
     test_jit("jit_rodata.c").await;
 }
 
-
 async fn test_jit(test_program: &str) {
     let env = load_env();
     test_jit_execution(test_program, BinaryFileLayout::RawObjectFile, &env).await;
