@@ -75,3 +75,10 @@ pub async fn benchmark_raw_object_file_interpreter() {
         benchmark_fletcher_16(data_size, &environment, BinaryFileLayout::RawObjectFile, false).await;
     }
 }
+#[tokio::test]
+pub async fn benchmark_jit() {
+    let environment = mibpf_tools::load_env();
+    for data_size in 1..=6 {
+        benchmark_fletcher_16(data_size, &environment, BinaryFileLayout::RawObjectFile, true).await;
+    }
+}
