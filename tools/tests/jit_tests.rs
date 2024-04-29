@@ -80,7 +80,7 @@ async fn jit_fletcher() {
 }
 #[tokio::test]
 async fn jit_fletcher16() {
-    test_jit("jit_fletcher16_checksum.c").await;
+    test_jit("jit_fletcher16_checksum_320B_data.c").await;
 }
 #[tokio::test]
 async fn jit_asr_reg() {
