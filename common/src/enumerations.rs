@@ -222,6 +222,9 @@ pub enum ExecutionModel {
     LongRunning,
     /// Similar as ShortLived but more data is collected when the vm runs.
     Benchmark,
+    /// The request triggers native C execution, only used for benchmarks of
+    /// hard-coded programs
+    Native,
 }
 
 impl FromStr for ExecutionModel {
@@ -232,6 +235,7 @@ impl FromStr for ExecutionModel {
             "ShortLived" => Ok(ExecutionModel::ShortLived),
             "WithAccessToCoapPacket" => Ok(ExecutionModel::WithAccessToCoapPacket),
             "LongRunning" => Ok(ExecutionModel::LongRunning),
+            "Native" => Ok(ExecutionModel::Native),
             _ => Err(format!("Unknown execution model: {}", s)),
         }
     }

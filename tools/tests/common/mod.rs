@@ -84,7 +84,9 @@ pub async fn test_jit_execution_specifying_helpers(
     // When running on embedded targets we need to give them enough time
     // to fetch the firmware
     if environment.board_name != "native" {
-        std::thread::sleep(std::time::Duration::from_secs(NUCLEO_EXECUTION_REQUEST_TIMEOUT));
+        std::thread::sleep(std::time::Duration::from_secs(
+            NUCLEO_EXECUTION_REQUEST_TIMEOUT,
+        ));
     }
 
     // Then we request execution and check that the return value is what we
@@ -117,7 +119,9 @@ pub async fn test_execution_specifying_helpers(
     // When running on embedded targets we need to give them enough time
     // to fetch the firmware
     if environment.board_name != "native" {
-        std::thread::sleep(std::time::Duration::from_secs(NUCLEO_EXECUTION_REQUEST_TIMEOUT));
+        std::thread::sleep(std::time::Duration::from_secs(
+            NUCLEO_EXECUTION_REQUEST_TIMEOUT,
+        ));
     }
 
     // Then we request execution and check that the return value is what we
@@ -133,7 +137,98 @@ pub async fn test_execution_specifying_helpers(
     assert!(return_value == expected_return);
 }
 
+pub async fn benchmark_fletcher_16(
+    data_size: usize,
+    environment: &Environment,
+    layout: BinaryFileLayout,
+    jit: bool,
+) {
+    let available_helpers = vec![HelperFunctionID::BPF_STRLEN_IDX as u8];
 
+    let test_source = match data_size {
+        1 => "jit_fletcher16_checksum_80B_data.c",
+        2 => "jit_fletcher16_checksum_160B_data.c",
+        3 => "jit_fletcher16_checksum_320B_data.c",
+        4 => "jit_fletcher16_checksum_640B_data.c",
+        5 => "jit_fletcher16_checksum_1280B_data.c",
+        6 => "jit_fletcher16_checksum_2560B_data.c",
+        _ => panic!("Invalid data size"),
+    };
+
+    let result = deploy_test_script(test_source, layout, environment, available_helpers.clone()).await;
+    if let Err(string) = &result {
+        println!("{}", string);
+    }
+    assert!(result.is_ok());
+
+    // When running on embedded targets we need to give them enough time
+    // to fetch the firmware
+    std::thread::sleep(std::time::Duration::from_secs(
+        NUCLEO_EXECUTION_REQUEST_TIMEOUT,
+    ));
+
+    let target_vm = match layout {
+        BinaryFileLayout::FemtoContainersHeader => TargetVM::FemtoContainer,
+        _ => TargetVM::Rbpf,
+    };
+
+    let response = execute(
+        &environment.riot_instance_ip,
+        target_vm,
+        layout,
+        0,
+        &environment.host_net_if,
+        ExecutionModel::ShortLived,
+        HelperAccessVerification::AheadOfTime,
+        HelperAccessListSource::ExecuteRequest,
+        &available_helpers,
+        jit,
+    )
+    .await
+    .unwrap();
+    #[derive(Deserialize)]
+    struct Response {
+        execution_time: u32,
+        result: i32,
+    }
+
+    println!("Response: {}", response);
+    let response = serde_json::from_str::<Response>(&response)
+        .map_err(|e| format!("Failed to parse the json response: {}", e))
+        .unwrap();
+}
+
+pub async fn benchmark_fletcher_16_native(data_size: usize, environment: &Environment) {
+    let available_helpers = all::<HelperFunctionID>()
+        .take(data_size)
+        .map(|e| e as u8)
+        .collect::<Vec<u8>>();
+    let response = execute(
+        &environment.riot_instance_ip,
+        TargetVM::FemtoContainer,
+        BinaryFileLayout::FemtoContainersHeader,
+        0,
+        &environment.host_net_if,
+        ExecutionModel::Native,
+        HelperAccessVerification::AheadOfTime,
+        HelperAccessListSource::ExecuteRequest,
+        &available_helpers,
+        false,
+    )
+    .await
+    .unwrap();
+    // {"execution_time": 10, "result": 0}
+    #[derive(Deserialize)]
+    struct Response {
+        execution_time: u32,
+        result: i32,
+    }
+
+    println!("Response: {}", response);
+    let response = serde_json::from_str::<Response>(&response)
+        .map_err(|e| format!("Failed to parse the json response: {}", e))
+        .unwrap();
+}
 
 pub async fn benchmark_execution(
     test_program: &str,
@@ -154,7 +249,9 @@ pub async fn benchmark_execution(
     // When running on embedded targets we need to give them enough time
     // to fetch the firmware
     if environment.board_name != "native" {
-        std::thread::sleep(std::time::Duration::from_secs(NUCLEO_EXECUTION_REQUEST_TIMEOUT));
+        std::thread::sleep(std::time::Duration::from_secs(
+            NUCLEO_EXECUTION_REQUEST_TIMEOUT,
+        ));
     }
 
     // when executing a different helper encoding is used.
@@ -208,7 +305,7 @@ pub async fn test_execution_accessing_coap_pkt_femtocontainer_vm(
         TargetVM::FemtoContainer,
         environment,
         available_helpers,
-        false
+        false,
     )
     .await
 }
@@ -250,7 +347,9 @@ pub async fn test_execution_accessing_coap_pkt_specifying_helpers(
     // When running on embedded targets we need to give them enough time
     // to fetch the firmware
     if environment.board_name != "native" {
-        std::thread::sleep(std::time::Duration::from_secs(NUCLEO_EXECUTION_REQUEST_TIMEOUT));
+        std::thread::sleep(std::time::Duration::from_secs(
+            NUCLEO_EXECUTION_REQUEST_TIMEOUT,
+        ));
     }
     assert!(result.is_ok());
 

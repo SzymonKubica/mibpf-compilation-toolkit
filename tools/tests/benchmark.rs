@@ -2,6 +2,8 @@ mod common;
 
 use common::benchmark_execution;
 use mibpf_common::BinaryFileLayout;
+
+use crate::common::{benchmark_fletcher_16, benchmark_fletcher_16_native};
 #[ignore]
 #[tokio::test]
 pub async fn benchmark_binary_layouts() {
@@ -40,4 +42,36 @@ pub async fn benchmark_binary_layouts() {
     benchmark_execution("inlined_calls_only_text.c", layout, &environment).await;
     benchmark_execution("printf_only_text.c", layout, &environment).await;
     println!("Done");
+}
+
+#[tokio::test]
+pub async fn benchmark_native() {
+    let environment = mibpf_tools::load_env();
+    for i in 1..=6 {
+        benchmark_fletcher_16_native(i, &environment).await;
+    }
+}
+
+#[tokio::test]
+pub async fn benchmark_fc_interpreter() {
+    let environment = mibpf_tools::load_env();
+    for data_size in 1..=6 {
+        benchmark_fletcher_16(data_size, &environment, BinaryFileLayout::FemtoContainersHeader, false).await;
+    }
+}
+
+#[tokio::test]
+pub async fn benchmark_extended_interpreter() {
+    let environment = mibpf_tools::load_env();
+    for data_size in 1..=6 {
+        benchmark_fletcher_16(data_size, &environment, BinaryFileLayout::ExtendedHeader, false).await;
+    }
+}
+
+#[tokio::test]
+pub async fn benchmark_raw_object_file_interpreter() {
+    let environment = mibpf_tools::load_env();
+    for data_size in 1..=6 {
+        benchmark_fletcher_16(data_size, &environment, BinaryFileLayout::RawObjectFile, false).await;
+    }
 }

@@ -43,13 +43,16 @@ pub async fn execute(
         helper_indices,
     );
 
-    println!("Helper encoding: {:?}", request.allowed_helpers);
+    debug!("Helper encoding: {:?}", request.allowed_helpers);
 
     let url = match execution_model {
         ExecutionModel::ShortLived => format!(
             "coap://[{}%{}]/{}/exec",
             riot_ipv6_addr,
             host_network_interface,
+            // The below setting is for benchmarking the native execution of fletcher16, this
+            // should be moved into a separate place when there is more time
+            //if jit { "native" } else { "vm" }
             if jit { "jit" } else { "vm" }
         ),
         ExecutionModel::WithAccessToCoapPacket => {
@@ -66,6 +69,13 @@ pub async fn execute(
             "coap://[{}%{}]/vm/bench",
             riot_ipv6_addr, host_network_interface
         ),
+        ExecutionModel::Native => {
+            format!(
+                "coap://[{}%{}]/native/exec",
+                riot_ipv6_addr,
+                host_network_interface,
+            )
+        }
     };
 
     debug!("Sending a request to the url: {}", url);
