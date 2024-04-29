@@ -44,6 +44,7 @@ pub async fn benchmark_binary_layouts() {
     println!("Done");
 }
 
+#[ignore]
 #[tokio::test]
 pub async fn benchmark_native() {
     let environment = mibpf_tools::load_env();
@@ -52,6 +53,7 @@ pub async fn benchmark_native() {
     }
 }
 
+#[ignore]
 #[tokio::test]
 pub async fn benchmark_fc_interpreter() {
     let environment = mibpf_tools::load_env();
@@ -60,6 +62,7 @@ pub async fn benchmark_fc_interpreter() {
     }
 }
 
+#[ignore]
 #[tokio::test]
 pub async fn benchmark_extended_interpreter() {
     let environment = mibpf_tools::load_env();
@@ -68,6 +71,7 @@ pub async fn benchmark_extended_interpreter() {
     }
 }
 
+#[ignore]
 #[tokio::test]
 pub async fn benchmark_raw_object_file_interpreter() {
     let environment = mibpf_tools::load_env();
@@ -75,6 +79,8 @@ pub async fn benchmark_raw_object_file_interpreter() {
         benchmark_fletcher_16(data_size, &environment, BinaryFileLayout::RawObjectFile, false).await;
     }
 }
+
+#[ignore]
 #[tokio::test]
 pub async fn benchmark_jit() {
     let environment = mibpf_tools::load_env();
