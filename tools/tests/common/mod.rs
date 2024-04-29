@@ -145,17 +145,12 @@ pub async fn benchmark_fletcher_16(
 ) {
     let available_helpers = vec![HelperFunctionID::BPF_STRLEN_IDX as u8];
 
-    let test_source = match data_size {
-        1 => "jit_fletcher16_checksum_80B_data.c",
-        2 => "jit_fletcher16_checksum_160B_data.c",
-        3 => "jit_fletcher16_checksum_320B_data.c",
-        4 => "jit_fletcher16_checksum_640B_data.c",
-        5 => "jit_fletcher16_checksum_1280B_data.c",
-        6 => "jit_fletcher16_checksum_2560B_data.c",
-        _ => panic!("Invalid data size"),
-    };
+    let base: u32 = 2;
+    let bytes = 80 * base.pow((data_size - 1) as u32);
+    let test_source = format!("jit_fletcher16_checksum_{}B_data.c", bytes);
 
-    let result = deploy_test_script(test_source, layout, environment, available_helpers.clone()).await;
+    let result =
+        deploy_test_script(&test_source, layout, environment, available_helpers.clone()).await;
     if let Err(string) = &result {
         println!("{}", string);
     }
@@ -186,16 +181,14 @@ pub async fn benchmark_fletcher_16(
     )
     .await
     .unwrap();
-    #[derive(Deserialize)]
+    #[derive(Deserialize, Debug)]
     struct Response {
         execution_time: u32,
         result: i32,
     }
 
-    println!("Response: {}", response);
-    let response = serde_json::from_str::<Response>(&response)
-        .map_err(|e| format!("Failed to parse the json response: {}", e))
-        .unwrap();
+    let response = serde_json::from_str::<Response>(&response).unwrap();
+    println!("({}, {})", bytes, response.execution_time);
 }
 
 pub async fn benchmark_fletcher_16_native(data_size: usize, environment: &Environment) {
@@ -224,10 +217,10 @@ pub async fn benchmark_fletcher_16_native(data_size: usize, environment: &Enviro
         result: i32,
     }
 
-    println!("Response: {}", response);
-    let response = serde_json::from_str::<Response>(&response)
-        .map_err(|e| format!("Failed to parse the json response: {}", e))
-        .unwrap();
+    let base: u32 = 2;
+    let bytes = 80 * base.pow((data_size - 1) as u32);
+    let response = serde_json::from_str::<Response>(&response).unwrap();
+    println!("({}, {})", bytes, response.execution_time);
 }
 
 pub async fn benchmark_execution(
