@@ -236,6 +236,7 @@ impl FromStr for ExecutionModel {
             "WithAccessToCoapPacket" => Ok(ExecutionModel::WithAccessToCoapPacket),
             "LongRunning" => Ok(ExecutionModel::LongRunning),
             "Native" => Ok(ExecutionModel::Native),
+            "Benchmark" => Ok(ExecutionModel::Benchmark),
             _ => Err(format!("Unknown execution model: {}", s)),
         }
     }
