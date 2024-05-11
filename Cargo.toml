@@ -4,4 +4,4 @@ members = [
   "tools",
   "elf-utils",
   "common"
-]
+, "macros"]
