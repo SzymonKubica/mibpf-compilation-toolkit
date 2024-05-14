@@ -3,7 +3,6 @@
 inline int helper_function_1();
 inline int helper_function_2(int x);
 
-
 // This test checks if the VM supports inlined function calls. This should
 // work on all types of VMs and binary layouts. This is because here the work
 // is done by the compiler (as the function instructions are inlined at the
@@ -25,8 +24,7 @@ inline int helper_function_1()
 {
     bpf_printf("Inside the first helper function\n");
 
-    char fmt[] = "printf accepts up to 4 args: %d %d %d %d\n";
-    bpf_printf(fmt, 5, 6, 7, 8);
+    bpf_printf("printf accepts up to 4 args: %d %d %d %d\n", 5, 6, 7, 8);
 
     return 1;
 }

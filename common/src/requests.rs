@@ -70,7 +70,7 @@ impl VMExecutionRequest {
     /// the following 54 represent the vector of helper IDs that should be
     /// during the program execution
     pub fn encode(&self) -> String {
-        let mut encoding = format!("{:02x}", self.configuration.encode());
+        let mut encoding = format!("{:04x}", self.configuration.encode());
 
         for helper in &self.allowed_helpers {
             encoding.push_str(&format!("{:02x}", *helper as u8));
@@ -80,7 +80,7 @@ impl VMExecutionRequest {
     }
 
     pub fn decode(data: String) -> Result<VMExecutionRequest, String> {
-        let encoded_configuration = u8::from_str_radix(&data[0..2], 16).map_err(|e| {
+        let encoded_configuration = u16::from_str_radix(&data[0..4], 16).map_err(|e| {
             format!(
                 "Unable to parse the vm configuration from the encoded string: {}",
                 e
@@ -89,7 +89,7 @@ impl VMExecutionRequest {
 
         let configuration = VMConfiguration::decode(encoded_configuration);
 
-        let allowed_helpers_ids = (2..data.len())
+        let allowed_helpers_ids = (4..data.len())
             .step_by(2)
             .map(|i| u8::from_str_radix(&data[i..i + 2], 16))
             .collect::<Result<Vec<u8>, ParseIntError>>()
@@ -120,7 +120,7 @@ pub struct SuitPullRequest {
     /// Network interface used by the riot instance
     pub riot_netif: String,
     /// Encoded VM configuration, see: [`VMConfiguration`]
-    pub config: u8,
+    pub config: u16,
     /// Encoded list of allowed helpers
     pub helpers: String,
     /// Whether the request is allowed to overwrite the program currently present
@@ -135,7 +135,7 @@ impl SuitPullRequest {
         let encoded_ip: String = self.ip.chars().filter(|c| *c != ':').collect();
 
         return format!(
-            "{}|{}|{}|{}|{}|{}",
+            "{}|{}|{}|{:x}|{}|{}",
             encoded_ip, self.manifest, self.riot_netif, self.config, self.helpers, self.erase as u8,
         );
     }
@@ -174,7 +174,7 @@ impl SuitPullRequest {
             ip: parse_ip(data[0].to_string()),
             manifest: data[1].to_string(),
             riot_netif: data[2].to_string(),
-            config: u8::from_str_radix(data[3], 10)
+            config: u16::from_str_radix(data[3], 16)
                 .map_err(|e| format!("Unable to parse: {}", e))?,
             helpers: data[4].to_string(),
             erase: parse_bool(data[5]),

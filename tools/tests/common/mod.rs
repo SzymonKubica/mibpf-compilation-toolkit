@@ -9,7 +9,7 @@ use serde::Deserialize;
 
 /// When communicating with target board sometimes it takes longer to get the request processed
 /// we need to wait a bit longer to give the device time to respons
-const NUCLEO_EXECUTION_REQUEST_TIMEOUT: u64 = 2;
+const NUCLEO_EXECUTION_REQUEST_TIMEOUT: u64 = 1;
 
 pub async fn test_execution(
     test_program: &str,
@@ -173,7 +173,7 @@ pub async fn benchmark_fletcher_16(
         layout,
         0,
         &environment.host_net_if,
-        ExecutionModel::ShortLived,
+        ExecutionModel::Benchmark,
         HelperAccessVerification::AheadOfTime,
         HelperAccessListSource::ExecuteRequest,
         &available_helpers,
@@ -183,6 +183,7 @@ pub async fn benchmark_fletcher_16(
     .unwrap();
     #[derive(Deserialize, Debug)]
     struct Response {
+        #[serde(alias = "exec")]
         execution_time: u32,
         result: i32,
     }
@@ -227,6 +228,7 @@ pub async fn benchmark_execution(
     test_program: &str,
     layout: BinaryFileLayout,
     environment: &Environment,
+    target: TargetVM,
 ) {
     // By default all helpers are allowed
     let available_helpers = all::<HelperFunctionID>()
@@ -254,7 +256,7 @@ pub async fn benchmark_execution(
         .collect::<Vec<u8>>();
     let response = execute(
         &environment.riot_instance_ip,
-        TargetVM::Rbpf,
+        target,
         layout,
         0,
         &environment.host_net_if,
@@ -266,14 +268,87 @@ pub async fn benchmark_execution(
     )
     .await
     .unwrap();
-    // {"execution_time": 10, "result": 0}
+    // We need to use the short names in the json as the COAP packet that we
+    // can send to the microcontroller is limited in size.
+    // JSON example{"reloc": 105, "load": 67, "verif": 109, "exec": 2980,"prog": 1544, "result": 32742}
     #[derive(Deserialize)]
     struct Response {
+        #[serde(alias = "load")]
         load_time: u32,
         // Execution time in milliseconds
+        #[serde(alias = "reloc")]
+        relocation_resolution_time: u32,
+        #[serde(alias = "verif")]
+        verification_time: u32,
+        #[serde(alias = "exec")]
         execution_time: u32,
         // Return value of the program
+        #[serde(alias = "prog")]
         program_size: u32,
+        result: i32,
+    }
+
+    println!("Response: {}", response);
+    let response = serde_json::from_str::<Response>(&response)
+        .map_err(|e| format!("Failed to parse the json response: {}", e))
+        .unwrap();
+}
+
+pub async fn benchmark_jit_execution(test_program: &str, environment: &Environment) {
+    // By default all helpers are allowed
+    let available_helpers = all::<HelperFunctionID>()
+        .map(|e| e as u8)
+        .collect::<Vec<u8>>();
+    // We first deploy the program on the tested microcontroller
+    let layout = BinaryFileLayout::RawObjectFile;
+    let result = deploy_test_script(test_program, layout, environment, available_helpers).await;
+    if let Err(string) = &result {
+        println!("{}", string);
+    }
+    assert!(result.is_ok());
+
+    // When running on embedded targets we need to give them enough time
+    // to fetch the firmware
+    if environment.board_name != "native" {
+        std::thread::sleep(std::time::Duration::from_secs(
+            NUCLEO_EXECUTION_REQUEST_TIMEOUT,
+        ));
+    }
+
+    // when executing a different helper encoding is used.
+
+    let available_helpers = all::<HelperFunctionID>()
+        .map(|e| e as u8)
+        .collect::<Vec<u8>>();
+    let response = execute(
+        &environment.riot_instance_ip,
+        TargetVM::Rbpf,
+        layout,
+        0,
+        &environment.host_net_if,
+        ExecutionModel::ShortLived,
+        HelperAccessVerification::AheadOfTime,
+        HelperAccessListSource::ExecuteRequest,
+        &available_helpers,
+        true,
+    )
+    .await
+    .unwrap();
+    // We need to use the short names in the json as the COAP packet that we
+    // can send to the microcontroller is limited in size.
+    // Response format "{{\"prog_size\": {}, \"jit_prog_size\": {}, \"jit_comp_time\": {}, \"run_time\": {}, \"result\": {}}}",
+
+    #[derive(Deserialize)]
+    struct Response {
+        #[serde(alias = "jit_comp_time")]
+        jit_compilation_time: u32,
+        #[serde(alias = "run_time")]
+        execution_time: u32,
+        // Return value of the program
+        #[serde(alias = "prog_size")]
+        program_size: u32,
+        #[serde(alias = "jit_prog_size")]
+        jitted_program_size: u32,
         result: i32,
     }
 
@@ -496,8 +571,6 @@ pub async fn execute_deployed_program_specifying_helpers(
     // {"execution_time": 10, "result": 0}
     #[derive(Deserialize)]
     struct Response {
-        // Execution time in milliseconds
-        execution_time: u32,
         // Return value of the program
         result: i32,
     }

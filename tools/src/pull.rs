@@ -33,6 +33,8 @@ pub async fn pull(
         binary_layout,
         helper_access_verification,
         helper_access_list_source,
+        false,
+        false,
     );
 
     let config_encoded = configuration.encode();

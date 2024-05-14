@@ -44,13 +44,23 @@
 int test_printf(void *ctx)
 {
 
+
+    print("printf accepts up to 4 args: %d %d %d %d\n", 1, 2, 3, 4);
+
+    // We can also use the helper directly, however in that case we need to
+    // first declare the char[]
+    char fmt[] = "printf accepts up to 4 args: %d %d %d %d\n";
+    bpf_printf(fmt, 5, 6, 7, 8);
+
     char FMT[] = "printf accepts up to 4 args: %d %d %d %d\n";
     bpf_printf(FMT, 9, 10, 11, 12);
 
     // In order to make it less unwieldy, a print macro is introduced which
     // declares the format string explicitly for us:
 
-    print("This is a test of the print macro: %d\n", 123)
-
-    return 100;
+    // After the latest fixes to the rodata section, direct use of the format
+    // string is also possible
+    print("Here is a number: %d\n", 10);
+    print("Here is another number: %d\n", 12);
+    return 0;
 }

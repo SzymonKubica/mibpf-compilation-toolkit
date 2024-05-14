@@ -29,6 +29,11 @@ pub struct VMConfiguration {
     pub helper_access_verification: HelperAccessVerification,
     /// Informs the VM from where the list of available helpers should be sourced
     pub helper_access_list_source: HelperAccessListSource,
+    /// Controlls whether the VM should use the JIT-compiled eBPF programs.
+    pub jit: bool,
+    /// Controlls whether the jitted program is to be compiled preflight
+    /// or loaded from jit program storage.
+    pub jit_compile: bool,
 }
 
 impl VMConfiguration {
@@ -38,6 +43,8 @@ impl VMConfiguration {
         binary_layout: BinaryFileLayout,
         helper_access_verification: HelperAccessVerification,
         helper_access_list_source: HelperAccessListSource,
+        jit: bool,
+        jit_compile: bool,
     ) -> Self {
         VMConfiguration {
             vm_target,
@@ -45,6 +52,8 @@ impl VMConfiguration {
             suit_slot,
             helper_access_verification,
             helper_access_list_source,
+            jit,
+            jit_compile,
         }
     }
 
@@ -57,18 +66,21 @@ impl VMConfiguration {
     /// metadata.
     ///
     /// The encoding is as follows:
-    /// - The least significant bit specifies whether we should use the rbpf
-    /// or the FemtoContainers VM. 0 corresponds to rbpf and 1 to FemtoContainers.
-    /// - The next two bits specify the SUIT storage slot storing the eBPF program
-    /// bytecode.
-    /// - The next two bits specify the binary file layout that the VM should
+    /// - bit 0: the least significant bit specifies whether we should use the rbpf
+    ///   or the FemtoContainers VM. 0 corresponds to rbpf and 1 to FemtoContainers.
+    /// - bits 1-4: the next four bits specify the SUIT storage slot storing the eBPF program
+    ///   bytecode (up to 16 available program slots).
+    /// - bits 5-6: the next two bits specify the binary file layout that the VM should
     ///   expect in the loaded program
-    /// - The next two bits specify the time in the pipeline at which the verification
+    /// - bits 7-8: the next two bits specify the time in the pipeline at which the verification
     ///   of accesses to helper functions should take place.
-    /// - The last bit (the most significant one) specifies whether the list
+    /// - bit 9: the next bit specifies whether the list
     ///   of allowed helper functions should be parsed from the program binary
     ///   (only supported for the [`BinaryFileLayout::ExtendedHeader`]) or taken
     ///   from the execution request payload.
+    /// - bit 10: The next bit specifies whether we should use jit-compiled programs.
+    /// - bit 11: The next bit specifies if we should run the jit-compilation or
+    ///   use one of the pre-compiled programs that are present in the jit storage.
     ///
     /// # Example
     /// ```
@@ -86,24 +98,30 @@ impl VMConfiguration {
     /// // s points to the suit_slot field of the configuation
     /// ```
 
-    pub fn encode(&self) -> u8 {
-        let mut encoding: u8 = 0;
-        encoding |= self.vm_target as u8;
-        encoding |= (self.suit_slot as u8) << 1;
-        encoding |= (self.binary_layout as u8) << 3;
-        encoding |= (self.helper_access_verification as u8) << 5;
-        encoding |= (self.helper_access_list_source as u8) << 7;
+    pub fn encode(&self) -> u16 {
+        let mut encoding: u16 = 0;
+        encoding |= self.vm_target as u16 & 0b1;
+        encoding |= (self.suit_slot as u16 & 0b1111) << 1;
+        encoding |= (self.binary_layout as u16 & 0b11) << 5;
+        encoding |= (self.helper_access_verification as u16 & 0b11) << 7;
+        encoding |= (self.helper_access_list_source as u16 & 0b1) << 9;
+        encoding |= (self.jit as u16 & 0b1) << 10;
+        encoding |= (self.jit_compile as u16 & 0b1) << 11;
         encoding
     }
 
     /// Decodes the VM configuration according to the encoding specified above.
-    pub fn decode(encoding: u8) -> Self {
+    pub fn decode(encoding: u16) -> Self {
         VMConfiguration {
-            vm_target: TargetVM::from(encoding & 0b1),
+            vm_target: TargetVM::from((encoding & 0b1) as u8),
             suit_slot: ((encoding >> 1) & 0b11) as usize,
-            binary_layout: BinaryFileLayout::from((encoding >> 3) & 0b11),
-            helper_access_verification: HelperAccessVerification::from((encoding >> 5) & 0b11),
-            helper_access_list_source: HelperAccessListSource::from((encoding >> 7) & 0b1),
+            binary_layout: BinaryFileLayout::from(((encoding >> 5) & 0b11) as u8),
+            helper_access_verification: HelperAccessVerification::from(
+                ((encoding >> 7) & 0b11) as u8,
+            ),
+            helper_access_list_source: HelperAccessListSource::from(((encoding >> 9) & 0b1) as u8),
+            jit: ((encoding >> 10) & 0b1) == 1,
+            jit_compile: ((encoding >> 11) & 0b1) == 1,
         }
     }
 }
@@ -220,11 +238,6 @@ pub enum ExecutionModel {
     /// can then run as long as needed and there is no way of early terminating
     /// its execution
     LongRunning,
-    /// Similar as ShortLived but more data is collected when the vm runs.
-    Benchmark,
-    /// The request triggers native C execution, only used for benchmarks of
-    /// hard-coded programs
-    Native,
 }
 
 impl FromStr for ExecutionModel {
@@ -235,8 +248,6 @@ impl FromStr for ExecutionModel {
             "ShortLived" => Ok(ExecutionModel::ShortLived),
             "WithAccessToCoapPacket" => Ok(ExecutionModel::WithAccessToCoapPacket),
             "LongRunning" => Ok(ExecutionModel::LongRunning),
-            "Native" => Ok(ExecutionModel::Native),
-            "Benchmark" => Ok(ExecutionModel::Benchmark),
             _ => Err(format!("Unknown execution model: {}", s)),
         }
     }
@@ -332,6 +343,8 @@ mod tests {
             BinaryFileLayout::FemtoContainersHeader,
             HelperAccessVerification::PreFlight,
             HelperAccessListSource::BinaryMetadata,
+            true,
+            false,
         );
 
         let encoded = configuration.encode();

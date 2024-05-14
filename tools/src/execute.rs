@@ -19,6 +19,8 @@ pub async fn execute(
     helper_access_list_source: HelperAccessListSource,
     helper_indices: &[u8],
     jit: bool,
+    jit_compile: bool,
+    benchmark: bool,
 ) -> Result<String, String> {
     // If the user doesn't specify any allowed helper indices, we allow all of them
     // by default.
@@ -39,43 +41,25 @@ pub async fn execute(
             binary_layout,
             helper_access_verification,
             helper_access_list_source,
+            jit,
+            jit_compile,
         ),
         helper_indices,
     );
 
     debug!("Helper encoding: {:?}", request.allowed_helpers);
 
+    let mut base_url = format!("coap://[{}%{}]", riot_ipv6_addr, host_network_interface);
+
+    if benchmark {
+        base_url.push_str("/benchmark");
+    }
+
+
     let url = match execution_model {
-        ExecutionModel::ShortLived => format!(
-            "coap://[{}%{}]/{}/exec",
-            riot_ipv6_addr,
-            host_network_interface,
-            // The below setting is for benchmarking the native execution of fletcher16, this
-            // should be moved into a separate place when there is more time
-            //if jit { "native" } else { "vm" }
-            if jit { "jit" } else { "vm" }
-        ),
-        ExecutionModel::WithAccessToCoapPacket => {
-            format!(
-                "coap://[{}%{}]/vm/exec/coap-pkt",
-                riot_ipv6_addr, host_network_interface
-            )
-        }
-        ExecutionModel::LongRunning => format!(
-            "coap://[{}%{}]/vm/spawn",
-            riot_ipv6_addr, host_network_interface
-        ),
-        ExecutionModel::Benchmark => format!(
-            "coap://[{}%{}]/vm/bench",
-            riot_ipv6_addr, host_network_interface
-        ),
-        ExecutionModel::Native => {
-            format!(
-                "coap://[{}%{}]/native/exec",
-                riot_ipv6_addr,
-                host_network_interface,
-            )
-        }
+        ExecutionModel::ShortLived => format!("{}/short-execution", base_url),
+        ExecutionModel::WithAccessToCoapPacket => format!("{}/with_coap_pkt", base_url),
+        ExecutionModel::LongRunning => format!("{}/long-running", base_url),
     };
 
     debug!("Sending a request to the url: {}", url);

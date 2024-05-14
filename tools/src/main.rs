@@ -178,6 +178,8 @@ async fn handle_execute(args: &Action, use_env: bool) -> Result<(), String> {
         helper_access_verification,
         helper_access_list_source,
         jit,
+        jit_compile,
+        benchmark,
     } = args
     else {
         return Err(format!("Invalid subcommand args: {:?}", args));
@@ -204,6 +206,8 @@ async fn handle_execute(args: &Action, use_env: bool) -> Result<(), String> {
             helper_access_list_source,
             helper_indices,
             *jit,
+            *jit_compile,
+            *benchmark,
         )
         .await?
     } else {
@@ -218,6 +222,8 @@ async fn handle_execute(args: &Action, use_env: bool) -> Result<(), String> {
             helper_access_list_source,
             helper_indices,
             *jit,
+            *jit_compile,
+            *benchmark,
         )
         .await?
     };

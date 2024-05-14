@@ -229,7 +229,12 @@ pub enum Action {
         helper_access_list_source: String,
 
         #[arg(short)]
-        jit: bool
+        jit: bool,
+        #[arg(long)]
+        jit_compile: bool,
+        #[arg(short)]
+        benchmark: bool,
+
     },
 }
 

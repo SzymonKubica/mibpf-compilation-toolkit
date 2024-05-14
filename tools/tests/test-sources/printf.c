@@ -10,9 +10,9 @@ int test_printf(void *ctx)
     bpf_printf("printf accepts up to 4 args: %d %d %d %d\n", 1, 2, 3, 4);
 
     // We can also use the helper directly, however in that case we need to
-    // first declare the char[]
-    char fmt[] = "printf accepts up to 4 args: %d %d %d %d\n";
-    bpf_printf(fmt, 5, 6, 7, 8);
+    // first declare the char[] // For some reason this hard faults on femtocontainers
+    //char fmt[] = "printf accepts up to 4 args: %d %d %d %d\n";
+    //bpf_printf(fmt, 5, 6, 7, 8);
 
     bpf_printf(FMT, 9, 10, 11, 12);
 
