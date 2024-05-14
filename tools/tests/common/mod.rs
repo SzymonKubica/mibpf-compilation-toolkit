@@ -173,11 +173,13 @@ pub async fn benchmark_fletcher_16(
         layout,
         0,
         &environment.host_net_if,
-        ExecutionModel::Benchmark,
+        ExecutionModel::ShortLived,
         HelperAccessVerification::AheadOfTime,
         HelperAccessListSource::ExecuteRequest,
         &available_helpers,
         jit,
+        true,
+        true,
     )
     .await
     .unwrap();
@@ -203,10 +205,12 @@ pub async fn benchmark_fletcher_16_native(data_size: usize, environment: &Enviro
         BinaryFileLayout::FemtoContainersHeader,
         0,
         &environment.host_net_if,
-        ExecutionModel::Native,
+        ExecutionModel::ShortLived,
         HelperAccessVerification::AheadOfTime,
         HelperAccessListSource::ExecuteRequest,
         &available_helpers,
+        false,
+        false,
         false,
     )
     .await
@@ -260,11 +264,13 @@ pub async fn benchmark_execution(
         layout,
         0,
         &environment.host_net_if,
-        ExecutionModel::Benchmark,
+        ExecutionModel::ShortLived,
         HelperAccessVerification::AheadOfTime,
         HelperAccessListSource::ExecuteRequest,
         &available_helpers,
         false,
+        false,
+        true,
     )
     .await
     .unwrap();
@@ -330,6 +336,8 @@ pub async fn benchmark_jit_execution(test_program: &str, environment: &Environme
         HelperAccessVerification::AheadOfTime,
         HelperAccessListSource::ExecuteRequest,
         &available_helpers,
+        true,
+        true,
         true,
     )
     .await
@@ -536,6 +544,8 @@ pub async fn execute_deployed_program_on_coap(
         HelperAccessListSource::ExecuteRequest,
         &available_helpers,
         jit,
+        true,
+        false
     )
     .await?;
 
@@ -564,6 +574,8 @@ pub async fn execute_deployed_program_specifying_helpers(
         HelperAccessListSource::ExecuteRequest,
         &available_helpers,
         jit,
+        true,
+        false,
     )
     .await?;
 

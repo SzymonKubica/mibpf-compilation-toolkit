@@ -1,6 +1,6 @@
 extern crate proc_macro;
 use proc_macro::TokenStream;
-use syn::{parse_macro_input, LitInt, LitStr, Expr, Token, parse::Parse};
+use syn::{parse_macro_input, Expr, Token, parse::Parse};
 
 struct MacroInput {
     pub env_name: Expr,
