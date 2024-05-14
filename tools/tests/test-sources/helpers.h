@@ -68,6 +68,8 @@ static bpf_saul_reg_t *(*bpf_saul_reg_find_type)(uint8_t type) = (void *)
     BPF_FUNC_BPF_SAUL_REG_FIND_TYPE;
 static int (*bpf_saul_reg_read)(bpf_saul_reg_t *dev, phydat_t *data) = (void *)
     BPF_FUNC_BPF_SAUL_REG_READ;
+static int (*bpf_saul_read_temp)(bpf_saul_reg_t *dev, uint32_t *data) = (void *)
+    BPF_FUNC_BPF_SAUL_READ_TEMP;
 static int (*bpf_saul_reg_write)(bpf_saul_reg_t *dev, phydat_t *data) = (void *)
     BPF_FUNC_BPF_SAUL_REG_WRITE;
 

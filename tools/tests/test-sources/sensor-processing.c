@@ -2,8 +2,6 @@
 #include "helpers.h"
 
 #define SAUL_SENSE_TEMP 130
-
-#define TEMP_DATA_START 0
 #define TEMP_DATA_PTR 5
 #define TEMP_STORAGE_SLOTS 4
 
@@ -34,7 +32,6 @@
 
 uint32_t sensor_processing(void *ctx)
 {
-    (void)ctx;
 
     // First we read the temperature
     bpf_saul_reg_t *dht_temp;

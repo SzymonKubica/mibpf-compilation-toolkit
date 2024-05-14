@@ -382,6 +382,7 @@ pub enum HelperFunctionID {
     BPF_SAUL_REG_FIND_TYPE_IDX = 0x31,
     BPF_SAUL_REG_READ_IDX = 0x32,
     BPF_SAUL_REG_WRITE_IDX = 0x33,
+    BPF_SAUL_REG_READ_TEMP = 0x34,
 
     /* (g)coap functions */
     BPF_GCOAP_RESP_INIT_IDX = 0x40,
