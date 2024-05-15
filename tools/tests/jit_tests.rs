@@ -177,6 +177,14 @@ async fn jit_for_loop() {
     test_jit("jit_for-loop.c").await;
 }
 #[tokio::test]
+async fn jit_for_loop_2() {
+    test_jit("jit_for-loop-2.c").await;
+}
+#[tokio::test]
+async fn jit_for_loop_3() {
+    test_jit("jit_for-loop-3.c").await;
+}
+#[tokio::test]
 async fn jit_while_loop() {
     test_jit("jit_while-loop.c").await;
 }

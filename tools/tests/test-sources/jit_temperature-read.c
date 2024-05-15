@@ -15,5 +15,8 @@ uint32_t temperature_read(void *ctx)
 
     uint32_t temperature_data;
     bpf_saul_read_temp(dht_temp, &temperature_data);
-    return 0;
+
+    uint32_t temperature_data2;
+    bpf_saul_read_temp(dht_temp, &temperature_data2);
+    return temperature_data + temperature_data2;
 }

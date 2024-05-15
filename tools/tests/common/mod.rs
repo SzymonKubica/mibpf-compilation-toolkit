@@ -1,11 +1,13 @@
+use std::process::Command;
+
 use enum_iterator::all;
 use mibpf_tools::{self, deploy, execute, Environment};
 
 use mibpf_common::{
     BinaryFileLayout, ExecutionModel, HelperAccessListSource, HelperAccessVerification,
-    HelperFunctionID, TargetVM,
+    HelperFunctionID, TargetVM, VMConfiguration, VMExecutionRequest,
 };
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
 /// When communicating with target board sometimes it takes longer to get the request processed
 /// we need to wait a bit longer to give the device time to respons
@@ -142,7 +144,7 @@ pub async fn benchmark_fletcher_16(
     environment: &Environment,
     layout: BinaryFileLayout,
     jit: bool,
-) {
+) -> BenchmarkResponse {
     let available_helpers = vec![HelperFunctionID::BPF_STRLEN_IDX as u8];
 
     let base: u32 = 2;
@@ -183,49 +185,80 @@ pub async fn benchmark_fletcher_16(
     )
     .await
     .unwrap();
-    #[derive(Deserialize, Debug)]
-    struct Response {
-        #[serde(alias = "exec")]
-        execution_time: u32,
-        result: i32,
-    }
-
-    let response = serde_json::from_str::<Response>(&response).unwrap();
+    let response = serde_json::from_str::<BenchmarkResponse>(&response).unwrap();
     println!("({}, {})", bytes, response.execution_time);
+    return response;
 }
 
-pub async fn benchmark_fletcher_16_native(data_size: usize, environment: &Environment) {
+pub async fn benchmark_fletcher_16_native(
+    data_size: usize,
+    environment: &Environment,
+) -> SimpleResponse {
+    // The size of the benchmarked
     let available_helpers = all::<HelperFunctionID>()
         .take(data_size)
-        .map(|e| e as u8)
-        .collect::<Vec<u8>>();
-    let response = execute(
-        &environment.riot_instance_ip,
-        TargetVM::FemtoContainer,
-        BinaryFileLayout::FemtoContainersHeader,
-        0,
-        &environment.host_net_if,
-        ExecutionModel::ShortLived,
-        HelperAccessVerification::AheadOfTime,
-        HelperAccessListSource::ExecuteRequest,
-        &available_helpers,
-        false,
-        false,
-        false,
-    )
-    .await
-    .unwrap();
-    // {"execution_time": 10, "result": 0}
-    #[derive(Deserialize)]
-    struct Response {
-        execution_time: u32,
-        result: i32,
+        .collect::<Vec<HelperFunctionID>>();
+
+    let request = VMExecutionRequest::new(
+        // We make a dummy request to the native jit endpoint
+        VMConfiguration::new(
+            TargetVM::FemtoContainer,
+            0,
+            BinaryFileLayout::FemtoContainersHeader,
+            HelperAccessVerification::AheadOfTime,
+            HelperAccessListSource::ExecuteRequest,
+            false,
+            false,
+        ),
+        available_helpers,
+    );
+
+    let mut base_url = format!(
+        "coap://[{}%{}]",
+        environment.riot_instance_ip, environment.host_net_if
+    );
+    // We need to point to the native benchmark endpoint.
+    base_url.push_str("/native/exec");
+
+    let payload = request.encode();
+
+    // We use the aiocoap-client here as opposed to the rust coap library because
+    // that one didn't support overriding the network interface in the ipv6 urls
+    let Ok(output) = Command::new("aiocoap-client")
+        .arg("-m")
+        .arg("POST")
+        .arg(base_url.clone())
+        .arg("--payload")
+        .arg(&payload)
+        .output()
+    else {
+        panic!("Failed to execute the command");
+    };
+
+    if output.stderr.len() > 0 {
+        let stderr = String::from_utf8(output.stderr)
+            .map_err(|e| format!("Failed to parse the stderr: {}", e));
+        panic!(
+            "{}",
+            format!("aiocoap-client failed with: {}", stderr.unwrap())
+        );
     }
+
+    let response = String::from_utf8(output.stdout)
+        .map_err(|e| format!("Failed to parse the response: {}", e))
+        .unwrap();
 
     let base: u32 = 2;
     let bytes = 80 * base.pow((data_size - 1) as u32);
-    let response = serde_json::from_str::<Response>(&response).unwrap();
+    let response = serde_json::from_str::<SimpleResponse>(&response).unwrap();
     println!("({}, {})", bytes, response.execution_time);
+    response
+}
+
+#[derive(Deserialize, Serialize, Debug)]
+pub struct SimpleResponse {
+    execution_time: u32,
+    result: i32,
 }
 
 pub async fn benchmark_execution(
@@ -233,7 +266,7 @@ pub async fn benchmark_execution(
     layout: BinaryFileLayout,
     environment: &Environment,
     target: TargetVM,
-) {
+) -> BenchmarkResponse {
     // By default all helpers are allowed
     let available_helpers = all::<HelperFunctionID>()
         .map(|e| e as u8)
@@ -276,28 +309,30 @@ pub async fn benchmark_execution(
     .unwrap();
     // We need to use the short names in the json as the COAP packet that we
     // can send to the microcontroller is limited in size.
-    // JSON example{"reloc": 105, "load": 67, "verif": 109, "exec": 2980,"prog": 1544, "result": 32742}
-    #[derive(Deserialize)]
-    struct Response {
-        #[serde(alias = "load")]
-        load_time: u32,
-        // Execution time in milliseconds
-        #[serde(alias = "reloc")]
-        relocation_resolution_time: u32,
-        #[serde(alias = "verif")]
-        verification_time: u32,
-        #[serde(alias = "exec")]
-        execution_time: u32,
-        // Return value of the program
-        #[serde(alias = "prog")]
-        program_size: u32,
-        result: i32,
-    }
 
     println!("Response: {}", response);
-    let response = serde_json::from_str::<Response>(&response)
+    let response = serde_json::from_str::<BenchmarkResponse>(&response)
         .map_err(|e| format!("Failed to parse the json response: {}", e))
         .unwrap();
+
+    response
+}
+
+#[derive(Deserialize, Debug, Serialize)]
+pub struct BenchmarkResponse {
+    #[serde(rename(deserialize = "total"))]
+    total_time: u32,
+    #[serde(rename(deserialize = "load"))]
+    load_time: u32,
+    #[serde(rename(deserialize = "verif"))]
+    verification_time: u32,
+    // Execution time in milliseconds
+    #[serde(rename(deserialize = "exec"))]
+    execution_time: u32,
+    // Return value of the program
+    #[serde(rename(deserialize = "prog"))]
+    program_size: u32,
+    result: i32,
 }
 
 pub async fn benchmark_jit_execution(test_program: &str, environment: &Environment) {
@@ -342,26 +377,9 @@ pub async fn benchmark_jit_execution(test_program: &str, environment: &Environme
     )
     .await
     .unwrap();
-    // We need to use the short names in the json as the COAP packet that we
-    // can send to the microcontroller is limited in size.
-    // Response format "{{\"prog_size\": {}, \"jit_prog_size\": {}, \"jit_comp_time\": {}, \"run_time\": {}, \"result\": {}}}",
-
-    #[derive(Deserialize)]
-    struct Response {
-        #[serde(alias = "jit_comp_time")]
-        jit_compilation_time: u32,
-        #[serde(alias = "run_time")]
-        execution_time: u32,
-        // Return value of the program
-        #[serde(alias = "prog_size")]
-        program_size: u32,
-        #[serde(alias = "jit_prog_size")]
-        jitted_program_size: u32,
-        result: i32,
-    }
 
     println!("Response: {}", response);
-    let response = serde_json::from_str::<Response>(&response)
+    let response = serde_json::from_str::<BenchmarkResponse>(&response)
         .map_err(|e| format!("Failed to parse the json response: {}", e))
         .unwrap();
 }
@@ -545,7 +563,7 @@ pub async fn execute_deployed_program_on_coap(
         &available_helpers,
         jit,
         true,
-        false
+        false,
     )
     .await?;
 
