@@ -1,6 +1,6 @@
 use std::process::Command;
 
-use log::debug;
+use log::{debug, error};
 
 pub fn sign(
     host_network_interface: &str,
@@ -38,6 +38,13 @@ pub fn sign(
         "sign.sh output: \n{}",
         String::from_utf8(output.stdout).unwrap()
     );
+    if output.stderr.len() > 0 {
+        error!(
+            "Error while signing: \n{}",
+            String::from_utf8(output.stderr).unwrap()
+        );
+
+    }
 
     Ok(())
 }

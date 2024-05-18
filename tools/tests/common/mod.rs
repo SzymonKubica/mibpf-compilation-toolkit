@@ -335,7 +335,7 @@ pub struct BenchmarkResponse {
     result: i32,
 }
 
-pub async fn benchmark_jit_execution(test_program: &str, environment: &Environment) {
+pub async fn benchmark_jit_execution(test_program: &str, environment: &Environment) -> BenchmarkResponse {
     // By default all helpers are allowed
     let available_helpers = all::<HelperFunctionID>()
         .map(|e| e as u8)
@@ -382,6 +382,7 @@ pub async fn benchmark_jit_execution(test_program: &str, environment: &Environme
     let response = serde_json::from_str::<BenchmarkResponse>(&response)
         .map_err(|e| format!("Failed to parse the json response: {}", e))
         .unwrap();
+    response
 }
 
 pub async fn test_execution_accessing_coap_pkt_femtocontainer_vm(

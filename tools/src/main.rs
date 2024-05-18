@@ -308,7 +308,7 @@ async fn handle_deploy(args: &Action, use_env: bool) -> Result<(), String> {
             &env.host_net_if,
             &env.host_ip,
             &env.board_name,
-            None,
+            Some(&env.mibpf_root_dir),
             helper_indices.to_vec(),
             helper_access_verification,
             helper_access_list_source,

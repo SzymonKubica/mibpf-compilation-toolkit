@@ -54,7 +54,7 @@ pub async fn benchmark_only_text_section_layout() {
 #[tokio::test]
 pub async fn benchmark_extended_header() {
     let results = benchmark_layout(BinaryFileLayout::ExtendedHeader, TargetVM::Rbpf).await;
-    save_results("femtocontainers-header-results.json", results);
+    save_results("extended-header-results.json", results);
 }
 
 #[ignore]
@@ -108,9 +108,12 @@ pub async fn benchmark_layout(
 #[tokio::test]
 pub async fn benchmark_jit() {
     let environment = mibpf_tools::load_env();
+    let mut results: HashMap<&'static str, BenchmarkResponse> = HashMap::new();
     for source in BENCHMARK_SOURCES.iter() {
-        benchmark_jit_execution(*source, &environment).await;
+        let response = benchmark_jit_execution(*source, &environment).await;
+        results.insert(source, response);
     }
+    save_results("jit-results.json", results);
 }
 
 #[ignore]
