@@ -411,6 +411,7 @@ pub enum HelperFunctionID {
     BPF_HD44780_CLEAR = 0x81,
     BPF_HD44780_PRINT = 0x82,
     BPF_HD44780_SET_CURSOR = 0x83,
+    BPF_KEYPAD_GET_INPUT = 0x84,
 }
 
 impl Into<u32> for HelperFunctionID {

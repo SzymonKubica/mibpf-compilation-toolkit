@@ -114,4 +114,7 @@ static uint64_t (*bpf_hd44780_set_cursor)(uint32_t dev, uint32_t row,
                                           uint32_t col) = (void *)
     BPF_FUNC_HD44780_SET_CURSOR;
 
+static uint64_t (*bpf_keypad_get_input)(uint32_t adc_index) = (void *)
+    BPF_KEYPAD_GET_INPUT;
+
 #endif /* BPF_APPLICATION_CALL_H */

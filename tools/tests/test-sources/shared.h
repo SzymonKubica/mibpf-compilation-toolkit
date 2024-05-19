@@ -69,6 +69,8 @@ enum {
   BPF_FUNC_HD44780_PRINT = 0x82,
   BPF_FUNC_HD44780_SET_CURSOR = 0x83,
 
+  BPF_KEYPAD_GET_INPUT = 0x84,
+
 };
 
 /* Helper structs */
