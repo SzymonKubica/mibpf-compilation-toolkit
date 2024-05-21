@@ -107,10 +107,6 @@ pub fn get_section_bytes(section_name: &str, binary: &Elf<'_>, binary_buffer: &[
                     [section.sh_offset as usize..(section.sh_offset + section.sh_size) as usize],
             );
 
-            if log_enabled!(Level::Debug) {
-                debug!("Extracted bytes:");
-                debug_print_program_bytes(&section_bytes);
-            };
             return section_bytes;
         }
     }

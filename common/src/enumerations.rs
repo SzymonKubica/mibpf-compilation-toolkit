@@ -114,7 +114,7 @@ impl VMConfiguration {
     pub fn decode(encoding: u16) -> Self {
         VMConfiguration {
             vm_target: TargetVM::from((encoding & 0b1) as u8),
-            suit_slot: ((encoding >> 1) & 0b11) as usize,
+            suit_slot: ((encoding >> 1) & 0b1111) as usize,
             binary_layout: BinaryFileLayout::from(((encoding >> 5) & 0b11) as u8),
             helper_access_verification: HelperAccessVerification::from(
                 ((encoding >> 7) & 0b11) as u8,

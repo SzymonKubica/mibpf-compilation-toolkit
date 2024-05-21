@@ -1430,6 +1430,9 @@ dependencies = [
  "goblin",
  "libm",
  "log",
+ "num",
+ "num-derive 0.4.2",
+ "num-traits",
  "time 0.2.27",
 ]
 
