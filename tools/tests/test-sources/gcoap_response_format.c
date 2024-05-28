@@ -38,6 +38,7 @@ int gcoap_response_format(bpf_coap_ctx_t *gcoap)
 
     // -1 means that there is one decimal point.
     size_t str_len = bpf_fmt_s16_dfp(fmt_buffer, temperature, -1);
+    bpf_printf("Length of payload string: %d\n", str_len);
 
     bpf_printf("Writing response code: %d\n", SUCCESS_RESPONSE_CODE);
     bpf_gcoap_resp_init(gcoap, SUCCESS_RESPONSE_CODE);
@@ -51,9 +52,12 @@ int gcoap_response_format(bpf_coap_ctx_t *gcoap)
     // of options to increase by 1.
     bpf_coap_add_format(gcoap, 0);
     ssize_t pdu_len = bpf_coap_opt_finish(gcoap, COAP_OPT_FINISH_PAYLOAD);
+    bpf_printf("pdu length: %d\n", pdu_len);
 
     uint8_t *payload = (uint8_t *)(pkt->payload_p);
 
+    bpf_printf("Payload length: %d\n", pkt->payload_len);
+    bpf_printf("Length of payload string: %d\n", str_len);
     bpf_printf("Copying stringified temperature reading payload\n");
     if (pkt->payload_len >= str_len) {
         char fmt[] = "{\"temperature\": }";
@@ -66,9 +70,10 @@ int gcoap_response_format(bpf_coap_ctx_t *gcoap)
         // buffer return the correct length of the payload. This is because this
         // return value is then used by the server to determine which subsection
         // of the buffer was written to and needs to be sent back to the client.
+        bpf_printf("Formatting response\n");
         return pdu_len + str_len + start_len + end_len;
     }
-    return -1;
+    return -10;
 }
 
 // Returns the temperature in degrees Celsius with one decimal point.

@@ -64,8 +64,10 @@ async fn inlined_calls() {
 async fn fletcher_32_checksum() {
     test_femtocontainers_header("fletcher32_checksum_no_strlen.c").await;
 }
-
-#[ignore] // For some reason accessing coap packets for femtocontainers VM is broken
+// For some reason accessing coap packets for femtocontainers VM is broken
+// It always fails on the first attempt. I suspect it has something to do with
+// how the packetbuffer is initialised. The rbpf implementation works fine.
+#[ignore]
 #[tokio::test]
 async fn gcoap_response_format() {
     test_femtocontainers_header_accessing_coap_pkt("gcoap_response_format.c").await;
