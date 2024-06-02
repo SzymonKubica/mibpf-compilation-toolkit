@@ -1,4 +1,4 @@
-use std::process::Command;
+use std::{env, process::Command, collections::HashMap};
 
 use enum_iterator::all;
 use mibpf_tools::{self, deploy, execute, Environment};
@@ -261,6 +261,166 @@ pub struct SimpleResponse {
     result: i32,
 }
 
+/// This benchmark aims at showing that as the list of allowed memory regions
+/// grows, the original memory access check approach becomes very slow. This is
+/// because each time memory is accessed, the list of allowed regions is traversed
+/// and as the size of the list grows, so doesn the traversal time. Running this
+/// test with the environment variable CACHE_MEM_CHECKS=true improves the
+/// performance.
+///
+/// The experimental setup is the following:
+/// We run two example programs:
+/// looping.c
+/// data_relocations-looping.c
+///
+/// The first one loops by incrementing a variable on the stack, the
+/// second one increments a variable in the .data section. The code of rbpf
+/// is set up so that as the list of allowed regions grows, the stack remains
+/// as the first item in the list, whereas the .data section shifts further
+/// to the back. This is done to exhibit a worst-case scenario where we need
+/// to access an item which is present in one of the memory regions located at
+/// the end of the list.
+///
+/// Because of the above setup, running the memory checks without caching should
+/// cause the second program to execute much slower as the number of allowed
+/// regions grows.
+pub async fn benchmark_memory_access_checks(environment: &Environment) -> HashMap<&'static str, HashMap<usize, BenchmarkResponse>> {
+    let region_list_sizes = vec![1, 4, 8, 12, 16];
+    // The number of memory regions is controlled by the size of available helpers
+    // (this is an instrumentation hack, in normal applications the list of
+    // allowed regions should be set up according to application requirements).
+    let mut stack_memory_access_benches = HashMap::new();
+    let mut data_section_memory_access_benches = HashMap::new();
+    let result = deploy_test_script_into_slot(
+        "looping.c",
+        BinaryFileLayout::RawObjectFile,
+        environment,
+        vec![],
+        0,
+    )
+    .await;
+
+    if let Err(string) = &result {
+        println!("{}", string);
+    }
+
+    assert!(result.is_ok());
+
+    // When running on embedded targets we need to give them enough time
+    // to fetch the firmware
+    if environment.board_name != "native" {
+        std::thread::sleep(std::time::Duration::from_secs(
+            NUCLEO_EXECUTION_REQUEST_TIMEOUT,
+        ));
+    }
+    let result2 = deploy_test_script_into_slot(
+        "data_relocations-looping.c",
+        BinaryFileLayout::RawObjectFile,
+        environment,
+        vec![],
+        1,
+    )
+    .await;
+
+    if let Err(string) = &result2 {
+        println!("{}", string);
+    }
+
+    assert!(result2.is_ok());
+    // When running on embedded targets we need to give them enough time
+    // to fetch the firmware
+    if environment.board_name != "native" {
+        std::thread::sleep(std::time::Duration::from_secs(
+            NUCLEO_EXECUTION_REQUEST_TIMEOUT,
+        ));
+    }
+
+    for size in region_list_sizes {
+        let available_helpers = all::<HelperFunctionID>()
+            .take(size)
+            .map(|e| e as u8)
+            .collect::<Vec<u8>>();
+        if let Err(string) = &result {
+            println!("{}", string);
+        }
+        assert!(result.is_ok());
+
+        let response = execute(
+            &environment.riot_instance_ip,
+            TargetVM::Rbpf,
+            BinaryFileLayout::RawObjectFile,
+            0,
+            &environment.host_net_if,
+            ExecutionModel::ShortLived,
+            HelperAccessVerification::AheadOfTime,
+            HelperAccessListSource::ExecuteRequest,
+            &available_helpers,
+            false,
+            false,
+            true,
+        )
+        .await
+        .unwrap();
+        // We need to use the short names in the json as the COAP packet that we
+        // can send to the microcontroller is limited in size.
+
+        println!("Response: {}", response);
+        let response = serde_json::from_str::<BenchmarkResponse>(&response)
+            .map_err(|e| format!("Failed to parse the json response: {}", e))
+            .unwrap();
+
+        stack_memory_access_benches.insert(size, response);
+
+        // When running on embedded targets we need to give them enough time
+        // to fetch the firmware
+        if environment.board_name != "native" {
+            std::thread::sleep(std::time::Duration::from_secs(
+                NUCLEO_EXECUTION_REQUEST_TIMEOUT,
+            ));
+        }
+
+        let response = execute(
+            &environment.riot_instance_ip,
+            TargetVM::Rbpf,
+            BinaryFileLayout::RawObjectFile,
+            1,
+            &environment.host_net_if,
+            ExecutionModel::ShortLived,
+            HelperAccessVerification::AheadOfTime,
+            HelperAccessListSource::ExecuteRequest,
+            &available_helpers,
+            false,
+            false,
+            true,
+        )
+        .await
+        .unwrap();
+        // We need to use the short names in the json as the COAP packet that we
+        // can send to the microcontroller is limited in size.
+
+        println!("Response: {}", response);
+        let response = serde_json::from_str::<BenchmarkResponse>(&response)
+            .map_err(|e| format!("Failed to parse the json response: {}", e))
+            .unwrap();
+
+        data_section_memory_access_benches.insert(size, response);
+    }
+
+    let mut result = HashMap::new();
+    result.insert("stack_memory_access", stack_memory_access_benches);
+    result.insert("data_section_memory_access", data_section_memory_access_benches);
+    result
+}
+
+pub fn save_results<T: serde::Serialize>(file_name: &str, results: T) {
+    let save_results = env::var("SAVE_RESULTS").unwrap_or_else(|_| "False".to_string());
+    match save_results.as_str() {
+        "False" => return,
+        _ => (),
+    }
+    let _ = std::fs::write(file_name, serde_json::to_string_pretty(&results).unwrap());
+}
+
 pub async fn benchmark_execution(
     test_program: &str,
     layout: BinaryFileLayout,
@@ -335,7 +495,10 @@ pub struct BenchmarkResponse {
     result: i32,
 }
 
-pub async fn benchmark_jit_execution(test_program: &str, environment: &Environment) -> BenchmarkResponse {
+pub async fn benchmark_jit_execution(
+    test_program: &str,
+    environment: &Environment,
+) -> BenchmarkResponse {
     // By default all helpers are allowed
     let available_helpers = all::<HelperFunctionID>()
         .map(|e| e as u8)
@@ -482,6 +645,36 @@ pub async fn deploy_test_script(
         layout,
         &environment.coap_root_dir,
         0,
+        &environment.riot_instance_net_if,
+        &environment.riot_instance_ip,
+        &environment.host_net_if,
+        &environment.host_ip,
+        &environment.board_name,
+        Some(environment.mibpf_root_dir.as_str()),
+        allowed_helpers,
+        HelperAccessVerification::AheadOfTime,
+        HelperAccessListSource::ExecuteRequest,
+        true,
+    )
+    .await
+}
+
+pub async fn deploy_test_script_into_slot(
+    file_name: &str,
+    layout: BinaryFileLayout,
+    environment: &Environment,
+    allowed_helpers: Vec<u8>,
+    suit_slot: usize,
+) -> Result<(), String> {
+    let file_path = format!("{}/{}", TEST_SOURCES_DIR, file_name);
+    let out_dir = format!("{}/out", TEST_SOURCES_DIR);
+    deploy(
+        &file_path,
+        &out_dir,
+        TargetVM::Rbpf,
+        layout,
+        &environment.coap_root_dir,
+        suit_slot,
         &environment.riot_instance_net_if,
         &environment.riot_instance_ip,
         &environment.host_net_if,

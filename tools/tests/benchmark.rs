@@ -6,7 +6,7 @@ use common::benchmark_execution;
 use mibpf_common::{BinaryFileLayout, TargetVM};
 
 use crate::common::{
-    benchmark_fletcher_16, benchmark_fletcher_16_native, benchmark_jit_execution, BenchmarkResponse,
+    benchmark_fletcher_16, benchmark_fletcher_16_native, benchmark_jit_execution, BenchmarkResponse, benchmark_memory_access_checks,
 };
 
 const BENCHMARK_SOURCES: [&'static str; 10] = [
@@ -67,8 +67,8 @@ pub async fn benchmark_femtocontainers_header() {
 #[ignore]
 #[tokio::test]
 pub async fn benchmark_raw_object_file() {
-    let resutls = benchmark_layout(BinaryFileLayout::RawObjectFile, TargetVM::Rbpf).await;
-    save_results("raw-object-file-results.json", resutls);
+    let results = benchmark_layout(BinaryFileLayout::RawObjectFile, TargetVM::Rbpf).await;
+    save_results("raw-object-file-results.json", results);
 }
 
 #[ignore]
@@ -182,6 +182,15 @@ pub async fn benchmark_fletcher_jit() {
     }
     save_results("jit-fletcher-results.json", results);
 }
+
+#[ignore]
+#[tokio::test]
+pub async fn bench_memory_access_checks() {
+    let environment = mibpf_tools::load_env();
+    let results = benchmark_memory_access_checks(&environment).await;
+    save_results("memory-access-checks.json", results);
+}
+
 pub async fn benchmark_fletcher(layout: BinaryFileLayout) -> HashMap<u32, BenchmarkResponse> {
     let environment = mibpf_tools::load_env();
     let mut results = HashMap::new();

@@ -3,14 +3,17 @@
 #include "helpers.h"
 
 #define ITERATIONS 100000
-int c = 0;
-volatile int *ptr = &c;
+uint32_t c = 0;
+volatile uint32_t *ptr = &c;
+// We add this string and return it so that the .rodata section is present
+// in the binary and we need to check it when performing the memory access checks.
+const char *rodata = "This a test read-only string";
 
 int test_data_relocations()
 {
+
     for (*ptr = 0; *ptr < ITERATIONS; (*ptr)++) {
-        //sum = (sum + i) % 255;
     }
 
-    return 0;
+    return rodata[0];
 }

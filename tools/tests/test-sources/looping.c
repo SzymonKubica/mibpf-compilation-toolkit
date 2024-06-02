@@ -4,16 +4,18 @@
 
 #define ITERATIONS 100000
 
+// We add this string and return it so that the .rodata section is present
+// in the binary and we need to check it when performing the memory access
+// checks.
+const char *rodata = "This a test read-only string";
+
 /* This file checks a simple for-loop iteration to investigate the
  * root cause of the performance discrepancy between rbpf and femtocontainers.
  */
 uint32_t looping(void *ctx)
 {
-
-    uint32_t sum = 0;
     for (volatile uint32_t i = 0; i < ITERATIONS; i++) {
-        //sum = (sum + i) % 255;
     }
 
-    return sum;
+    return rodata[0];
 }
