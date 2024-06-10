@@ -7,6 +7,8 @@ pub struct Environment {
     pub coap_root_dir: String,
     /// Directory for the object files.
     pub out_dir: String,
+    /// Directory with the source files.
+    pub src_dir: String,
     /// Network interface of the RIOT instance.
     pub riot_instance_net_if: String,
     /// IPv6 address of the RIOT instance.
@@ -35,5 +37,6 @@ pub fn load_env() -> Environment {
         host_net_if: dotenv::var("HOST_NET_IF").unwrap_or_else(|_| "tapbr0".to_string()),
         host_ip: dotenv::var("HOST_IP").unwrap_or_else(|_| "fe80::cc9a:73ff:fe4a:47f6".to_string()),
         board_name: dotenv::var("BOARD_NAME").unwrap_or_else(|_| "native".to_string()),
+        src_dir: dotenv::var("SRC_DIR").unwrap_or_else(|_| "../bpf/tests".to_string())
     }
 }
