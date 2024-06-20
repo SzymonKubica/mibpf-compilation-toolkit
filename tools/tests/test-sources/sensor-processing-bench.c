@@ -3,9 +3,8 @@
 
 #define SAUL_SENSE_TEMP 130
 #define TEMP_DATA_START 0
-#define TEMP_DATA_PTR 13
-#define TEMP_NEW_DATA 15
-#define TEMP_STORAGE_SLOTS 6
+#define TEMP_DATA_PTR 16
+#define TEMP_STORAGE_SLOTS 15
 
 #define ENABLE_DEBUG 0
 #define DEBUG(...)                                                             \
@@ -36,14 +35,17 @@
  * precision.
  */
 
-uint32_t sensor_processing_from_storage(void *ctx)
+uint32_t sensor_processing(void *ctx)
 {
 
-    // First we read the temperature
-    bpf_saul_reg_t *dht_temp;
+    // First we read the temperature from the
+    // slot that os populated by the sensor
     uint32_t temp;
-    // A separate thread updates the temperature in this slot
-    bpf_fetch_global(TEMP_NEW_DATA, &temp);
+    bpf_fetch_global(0, &temp);
+
+    // Log the results
+    DEBUG("[DHT] Reading temperature \n");
+    DEBUG("temp: %d.%d°C\n", temp / 10, temp % 10);
 
     // Update the temperature storage
     uint32_t pointer = 0;

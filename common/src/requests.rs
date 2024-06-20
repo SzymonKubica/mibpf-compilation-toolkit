@@ -67,7 +67,7 @@ impl VMExecutionRequest {
     /// Because of this limitation, we encode the request message as a string
     /// of concatenated u8s represented using the hex encoding (each u8 becomes
     /// 2 characters long). The first u8 is used for the VM configuration and
-    /// the following 54 represent the vector of helper IDs that should be
+    /// the following 52 represent the vector of helper IDs that should be
     /// during the program execution
     pub fn encode(&self) -> String {
         let mut encoding = format!("{:04x}", self.configuration.encode());
