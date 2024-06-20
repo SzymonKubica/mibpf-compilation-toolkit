@@ -1,13 +1,13 @@
-# mibpf-tools
+# micro-bpf-tools
 
-Compilation and deployment toolkit for [mibpf](https://github.com/SzymonKubica/mibpf) (μBPF)
+Compilation and deployment toolkit for [micro-bpf](https://github.com/SzymonKubica/micro-bpf) (μBPF)
 
 This repository contains a set of tools, scripts and definitions that
 can be used to develop applications for microcontrollers using eBPF.
 
 It is meant to work in conjunction with [μBPF](https://github.com/SzymonKubica/mibpf) - a port of an eBPF VM for microcontrollers running [RIOT](https://www.riot-os.org/).
 
-**mibpf-tools** consist of three separate packages:
+**micro-bpf-tools** consist of three separate packages:
 - `tools`
 - `common`
 - `elf-utils`
