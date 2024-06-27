@@ -213,7 +213,7 @@ pub enum Action {
         host_network_interface: String,
 
         /// Which execution model should be used by the vm, avaliable options: ShortLived,
-        /// WithAccessToCoapPacket, LongRunning, see [`mibpf_common::ExecutionModel`]
+        /// WithAccessToCoapPacket, LongRunning, see [`micro_bpf_common::ExecutionModel`]
         /// for more details.
         #[arg(long, default_value_t = String::from("ShortLived"))]
         execution_model: String,
@@ -239,7 +239,7 @@ pub enum Action {
 }
 
 /// Tools for compiling, signing, loading and executing eBPF programs for
-/// mibpf.
+/// micro_bpf.
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
 pub struct Args {

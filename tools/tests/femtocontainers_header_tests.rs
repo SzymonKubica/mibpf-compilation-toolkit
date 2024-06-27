@@ -4,9 +4,9 @@ use common::{
     test_execution, test_execution_accessing_coap_pkt,
     test_execution_femtocontainer_vm, test_execution_accessing_coap_pkt_femtocontainer_vm,
 };
-use mibpf_tools::load_env;
+use micro_bpf_tools::load_env;
 
-use mibpf_common::BinaryFileLayout;
+use micro_bpf_common::BinaryFileLayout;
 
 // This module contains end-to-end integration tests of the compile-upload-
 // execute workflow of the eBPF programs on microcontrollers. It is recommended
@@ -16,7 +16,7 @@ use mibpf_common::BinaryFileLayout;
 // The tests are set up in a way that each test file contains the expected return
 // value on the first line in the source file. This testsuite extracts that information
 // and compares it to the actual output returned in the response from the RIOT
-// instance running the mibpf server.
+// instance running the micro_bpf server.
 //
 // The tests in this module are specifically for the `FemtoContainersHeader`
 // binary file layout, which should be supported by both the rbpf VM implementation

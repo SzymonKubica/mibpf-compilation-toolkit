@@ -4,8 +4,8 @@ use std::{
     process::Command,
 };
 
-use mibpf_common::{BinaryFileLayout, HelperAccessVerification};
-use mibpf_elf_utils::{
+use micro_bpf_common::{BinaryFileLayout, HelperAccessVerification};
+use micro_bpf_elf_utils::{
     assemble_binary_specifying_helpers, assemble_femtocontainer_binary, extract_section,
 };
 

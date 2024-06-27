@@ -1,5 +1,5 @@
 /// This module defines all of the structs and enums that are shared between
-/// the different components of the project (cli tool, mibpf-server). The idea
+/// the different components of the project (cli tool, micro_bpf-server). The idea
 /// is that the internal representation of all structures in the system can be
 /// easily imported into each one of the components as a library.
 use core::fmt;
@@ -86,7 +86,7 @@ impl VMConfiguration {
     /// ```
     /// // Initialize the configuration object.
     ///
-    /// use mibpf_common::{TargetVM, BinaryFileLayout, VMConfiguration};
+    /// use micro_bpf_common::{TargetVM, BinaryFileLayout, VMConfiguration};
     /// let config = VMConfiguration::new(TargetVM::FemtoContainer, BinaryFileLayout::FemtoContainersHeader, 0);
     ///
     /// // Encode the configuration.

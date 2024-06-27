@@ -1,8 +1,8 @@
 mod common;
 
 use common::test_jit_execution;
-use mibpf_common::BinaryFileLayout;
-use mibpf_tools::load_env;
+use micro_bpf_common::BinaryFileLayout;
+use micro_bpf_tools::load_env;
 
 /// Tests for the simple programs to ensure that the jit compiler works correctly.
 

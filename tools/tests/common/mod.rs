@@ -1,9 +1,9 @@
 use std::{env, process::Command, collections::HashMap};
 
 use enum_iterator::all;
-use mibpf_tools::{self, deploy, execute, Environment};
+use micro_bpf_tools::{self, deploy, execute, Environment};
 
-use mibpf_common::{
+use micro_bpf_common::{
     BinaryFileLayout, ExecutionModel, HelperAccessListSource, HelperAccessVerification,
     HelperFunctionID, TargetVM, VMConfiguration, VMExecutionRequest,
 };
@@ -650,7 +650,7 @@ pub async fn deploy_test_script(
         &environment.host_net_if,
         &environment.host_ip,
         &environment.board_name,
-        Some(environment.mibpf_root_dir.as_str()),
+        Some(environment.micro_bpf_root_dir.as_str()),
         allowed_helpers,
         HelperAccessVerification::AheadOfTime,
         HelperAccessListSource::ExecuteRequest,
@@ -680,7 +680,7 @@ pub async fn deploy_test_script_into_slot(
         &environment.host_net_if,
         &environment.host_ip,
         &environment.board_name,
-        Some(environment.mibpf_root_dir.as_str()),
+        Some(environment.micro_bpf_root_dir.as_str()),
         allowed_helpers,
         HelperAccessVerification::AheadOfTime,
         HelperAccessListSource::ExecuteRequest,

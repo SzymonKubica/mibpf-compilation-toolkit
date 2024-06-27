@@ -3,7 +3,7 @@ mod common;
 use std::{collections::HashMap, env};
 
 use common::benchmark_execution;
-use mibpf_common::{BinaryFileLayout, TargetVM};
+use micro_bpf_common::{BinaryFileLayout, TargetVM};
 
 use crate::common::{
     benchmark_fletcher_16, benchmark_fletcher_16_native, benchmark_jit_execution, BenchmarkResponse, benchmark_memory_access_checks,
@@ -39,7 +39,7 @@ const BENCHMARK_SOURCES_FOR_ONLY_TEXT_SECTION_LAYOUT: [&'static str; 10] = [
 #[tokio::test]
 pub async fn benchmark_only_text_section_layout() {
     let layout = BinaryFileLayout::OnlyTextSection;
-    let environment = mibpf_tools::load_env();
+    let environment = micro_bpf_tools::load_env();
     let target = TargetVM::Rbpf;
 
     let mut results: HashMap<&'static str, BenchmarkResponse> = HashMap::new();
@@ -95,7 +95,7 @@ pub async fn benchmark_layout(
     layout: BinaryFileLayout,
     target: TargetVM,
 ) -> HashMap<&'static str, BenchmarkResponse> {
-    let environment = mibpf_tools::load_env();
+    let environment = micro_bpf_tools::load_env();
     let mut results: HashMap<&'static str, BenchmarkResponse> = HashMap::new();
     for source in BENCHMARK_SOURCES.iter() {
         let response = benchmark_execution(*source, layout, &environment, target).await;
@@ -107,7 +107,7 @@ pub async fn benchmark_layout(
 #[ignore]
 #[tokio::test]
 pub async fn benchmark_jit() {
-    let environment = mibpf_tools::load_env();
+    let environment = micro_bpf_tools::load_env();
     let mut results: HashMap<&'static str, BenchmarkResponse> = HashMap::new();
     for source in BENCHMARK_SOURCES.iter() {
         let response = benchmark_jit_execution(*source, &environment).await;
@@ -119,7 +119,7 @@ pub async fn benchmark_jit() {
 #[ignore]
 #[tokio::test]
 pub async fn benchmark_fletcher_native() {
-    let environment = mibpf_tools::load_env();
+    let environment = micro_bpf_tools::load_env();
     let mut results = HashMap::new();
     for data_size in 1..=6 {
         let response = benchmark_fletcher_16_native(data_size, &environment).await;
@@ -166,7 +166,7 @@ pub async fn benchmark_fletcher_raw_object_file() {
 #[ignore]
 #[tokio::test]
 pub async fn benchmark_fletcher_jit() {
-    let environment = mibpf_tools::load_env();
+    let environment = micro_bpf_tools::load_env();
     let mut results = HashMap::new();
     for data_size in 1..=6 {
         let response = benchmark_fletcher_16(
@@ -186,13 +186,13 @@ pub async fn benchmark_fletcher_jit() {
 #[ignore]
 #[tokio::test]
 pub async fn bench_memory_access_checks() {
-    let environment = mibpf_tools::load_env();
+    let environment = micro_bpf_tools::load_env();
     let results = benchmark_memory_access_checks(&environment).await;
     save_results("memory-access-checks.json", results);
 }
 
 pub async fn benchmark_fletcher(layout: BinaryFileLayout) -> HashMap<u32, BenchmarkResponse> {
-    let environment = mibpf_tools::load_env();
+    let environment = micro_bpf_tools::load_env();
     let mut results = HashMap::new();
     for data_size in 1..=6 {
         let response = benchmark_fletcher_16(data_size, &environment, layout, false).await;

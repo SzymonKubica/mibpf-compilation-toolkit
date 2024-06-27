@@ -1,5 +1,5 @@
 [package]
-name = "mibpf-elf-utils"
+name = "micro-bpf-elf-utils"
 version = "0.1.0"
 edition = "2021"
 
@@ -8,7 +8,7 @@ edition = "2021"
 [dependencies]
 log = "0.4.21"
 goblin = {version = "0.8.0", default_features = false , features = ["elf32", "elf64", "endian_fd"]}
-mibpf-common = { path = "../common" }
+micro-bpf-common = { path = "../common" }
 rbpf = { path = "../../vm", default-features = false }
 
 

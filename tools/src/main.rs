@@ -1,7 +1,7 @@
 extern crate clap;
 extern crate coap;
 extern crate env_logger;
-extern crate mibpf_common;
+extern crate micro_bpf_common;
 extern crate rbpf;
 
 mod args;
@@ -21,7 +21,7 @@ use compile::compile;
 use deploy::deploy;
 use environment::load_env;
 use execute::execute;
-use mibpf_common::{
+use micro_bpf_common::{
     BinaryFileLayout, ExecutionModel, HelperAccessListSource, HelperAccessVerification, TargetVM,
 };
 use postprocessing::apply_postprocessing;
@@ -308,7 +308,7 @@ async fn handle_deploy(args: &Action, use_env: bool) -> Result<(), String> {
             &env.host_net_if,
             &env.host_ip,
             &env.board_name,
-            Some(&env.mibpf_root_dir),
+            Some(&env.micro_bpf_root_dir),
             helper_indices.to_vec(),
             helper_access_verification,
             helper_access_list_source,

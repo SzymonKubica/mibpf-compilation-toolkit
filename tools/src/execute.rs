@@ -2,11 +2,11 @@ use std::process::Command;
 
 use enum_iterator::all;
 use log::debug;
-use mibpf_common::{
+use micro_bpf_common::{
     ExecutionModel, HelperAccessListSource, HelperAccessVerification, HelperFunctionID,
 };
 
-use crate::mibpf_common::{BinaryFileLayout, TargetVM, VMConfiguration, VMExecutionRequest};
+use crate::micro_bpf_common::{BinaryFileLayout, TargetVM, VMConfiguration, VMExecutionRequest};
 
 pub async fn execute(
     riot_ipv6_addr: &str,

@@ -1,8 +1,9 @@
 use std::{env, path::Path};
 
+#[derive(Debug)]
 pub struct Environment {
     /// Root directory of the mibpf repository.
-    pub mibpf_root_dir: String,
+    pub micro_bpf_root_dir: String,
     /// Root directory of the CoAP server.
     pub coap_root_dir: String,
     /// Directory for the object files.
@@ -27,7 +28,7 @@ pub fn load_env() -> Environment {
     let _ = dotenv::from_path(path);
 
     Environment {
-        mibpf_root_dir: dotenv::var("MIBPF_ROOT_DIR").unwrap_or_else(|_| "..".to_string()),
+        micro_bpf_root_dir: dotenv::var("MIBPF_ROOT_DIR").unwrap_or_else(|_| "..".to_string()),
         coap_root_dir: dotenv::var("COAP_ROOT_DIR").unwrap_or_else(|_| "../coaproot".to_string()),
         out_dir: dotenv::var("OUT_DIR").unwrap_or_else(|_| "../out".to_string()),
         riot_instance_net_if: dotenv::var("RIOT_INSTANCE_NET_IF")

@@ -1,7 +1,7 @@
-use mibpf_common::{HelperAccessListSource, HelperAccessVerification, TargetVM};
+use micro_bpf_common::{HelperAccessListSource, HelperAccessVerification, TargetVM};
 
 use crate::{
-    compile::compile, mibpf_common::BinaryFileLayout, postprocessing::apply_postprocessing,
+    compile::compile, micro_bpf_common::BinaryFileLayout, postprocessing::apply_postprocessing,
     pull::pull, sign::sign,
 };
 
@@ -19,7 +19,7 @@ pub async fn deploy(
     host_net_if: &str,
     host_ip: &str,
     board: &str,
-    mibpf_root_dir: Option<&str>,
+    micro_bpf_root_dir: Option<&str>,
     helper_indices: Vec<u8>,
     helper_access_verification: HelperAccessVerification,
     helper_access_list_source: HelperAccessListSource,
@@ -42,7 +42,7 @@ pub async fn deploy(
         coap_root,
         TEMP_FILE,
         suit_storage_slot,
-        mibpf_root_dir,
+        micro_bpf_root_dir,
     )?;
     pull(
         riot_ip,

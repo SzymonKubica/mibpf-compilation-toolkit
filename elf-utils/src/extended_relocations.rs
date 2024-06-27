@@ -294,7 +294,7 @@ pub fn resolve_rodata_relocations(
 /// specified at the end of the program binary.
 ///
 /// Note: This can only be used if the input slice of bytes comes from a program
-/// which has been preprocessed with the [`mibpf_common::BinaryFileLayout:ExtendedHeader`]
+/// which has been preprocessed with the [`micro_bpf_common::BinaryFileLayout:ExtendedHeader`]
 pub fn extract_allowed_helpers(prog: &[u8]) -> Vec<u8> {
     const FUNCTION_STRUCT_SIZE: u32 = 6;
     const RELOCATED_CALL_STRUCT_SIZE: u32 = 8;

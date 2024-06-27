@@ -995,7 +995,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "mibpf-common"
+name = "micro-bpf-common"
 version = "0.1.0"
 dependencies = [
  "enum-iterator",
@@ -1007,17 +1007,17 @@ dependencies = [
 ]
 
 [[package]]
-name = "mibpf-elf-utils"
+name = "micro-bpf-elf-utils"
 version = "0.1.0"
 dependencies = [
  "goblin",
  "log",
- "mibpf-common",
+ "micro-bpf-common",
  "rbpf",
 ]
 
 [[package]]
-name = "mibpf-tools"
+name = "micro-bpf-tools"
 version = "0.1.0"
 dependencies = [
  "clap",
@@ -1029,8 +1029,8 @@ dependencies = [
  "env_logger",
  "goblin",
  "log",
- "mibpf-common",
- "mibpf-elf-utils",
+ "micro-bpf-common",
+ "micro-bpf-elf-utils",
  "num",
  "rbpf",
  "serde",

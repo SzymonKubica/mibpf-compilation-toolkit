@@ -1,11 +1,11 @@
 use std::process::Command;
 
 use log::{debug, error};
-use mibpf_common::{
+use micro_bpf_common::{
     BinaryFileLayout, HelperAccessListSource, HelperAccessVerification, TargetVM, VMConfiguration,
 };
 
-use crate::mibpf_common::SuitPullRequest;
+use crate::micro_bpf_common::SuitPullRequest;
 
 pub async fn pull(
     riot_ipv6_addr: &str,

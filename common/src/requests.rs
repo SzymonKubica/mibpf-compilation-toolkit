@@ -14,7 +14,7 @@ use crate::{HelperFunctionID, VMConfiguration};
 ///
 /// # Example
 /// ```
-/// use mibpf_common::{VMConfiguration, TargetVM, BinaryFileLayout, HelperFunctionID};
+/// use micro_bpf_common::{VMConfiguration, TargetVM, BinaryFileLayout, HelperFunctionID};
 ///
 /// // List of helper functions
 /// let allowed_helpers = vec![HelperFunctionID::BPF_PRINTF_IDX, HelperFunctionID::BPF_DEBUG_PRINT_IDX]
