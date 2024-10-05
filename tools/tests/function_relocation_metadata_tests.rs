@@ -237,6 +237,7 @@ async fn test_function_relocation_metadata_with_helpers(
         TargetVM::Rbpf,
         &env,
         allowed_helpers,
+        false,
     )
     .await;
 }

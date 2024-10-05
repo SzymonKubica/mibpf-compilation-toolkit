@@ -44,7 +44,7 @@ pub async fn benchmark_only_text_section_layout() {
 
     let mut results: HashMap<&'static str, BenchmarkResponse> = HashMap::new();
     for source in BENCHMARK_SOURCES_FOR_ONLY_TEXT_SECTION_LAYOUT.iter() {
-        let response = benchmark_execution(*source, layout, &environment, target).await;
+        let response = benchmark_execution(*source, layout, &environment, target, false).await;
         results.insert(source, response);
     }
     save_results("only-text-section-results.json", results);
@@ -98,7 +98,7 @@ pub async fn benchmark_layout(
     let environment = micro_bpf_tools::load_env();
     let mut results: HashMap<&'static str, BenchmarkResponse> = HashMap::new();
     for source in BENCHMARK_SOURCES.iter() {
-        let response = benchmark_execution(*source, layout, &environment, target).await;
+        let response = benchmark_execution(*source, layout, &environment, target, false).await;
         results.insert(source, response);
     }
     results

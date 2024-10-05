@@ -28,6 +28,7 @@ pub async fn test_execution(
         TargetVM::Rbpf,
         environment,
         available_helpers,
+        false,
     )
     .await;
 }
@@ -65,6 +66,7 @@ pub async fn test_execution_femtocontainer_vm(
         TargetVM::FemtoContainer,
         environment,
         available_helpers,
+        false,
     )
     .await;
 }
@@ -75,10 +77,9 @@ pub async fn test_jit_execution_specifying_helpers(
     target_vm: TargetVM,
     environment: &Environment,
     available_helpers: Vec<u8>,
-    for_jit: bool,
 ) {
     // We first deploy the program on the tested microcontroller
-    let result = deploy_test_script(test_program, layout, environment, available_helpers, for_jit).await;
+    let result = deploy_test_script(test_program, layout, environment, available_helpers, true).await;
     if let Err(string) = &result {
         println!("{}", string);
     }
@@ -299,6 +300,7 @@ pub async fn benchmark_memory_access_checks(environment: &Environment) -> HashMa
         environment,
         vec![],
         0,
+        false,
     )
     .await;
 
@@ -321,6 +323,7 @@ pub async fn benchmark_memory_access_checks(environment: &Environment) -> HashMa
         environment,
         vec![],
         1,
+        false,
     )
     .await;
 
