@@ -24,6 +24,7 @@ pub async fn deploy(
     helper_access_verification: HelperAccessVerification,
     helper_access_list_source: HelperAccessListSource,
     erase: bool,
+    for_jit: bool,
 ) -> Result<(), String> {
     let object_file_name = get_object_file_name(bpf_source_file, out_dir)?;
     let suit_manifest = &format!("suit_manifest{}.signed", suit_storage_slot);
@@ -56,7 +57,8 @@ pub async fn deploy(
         helper_access_verification,
         helper_access_list_source,
         &helper_indices,
-        erase
+        erase,
+        for_jit,
     )
     .await?;
 

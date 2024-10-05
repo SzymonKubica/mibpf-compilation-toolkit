@@ -119,6 +119,10 @@ pub enum Action {
 
         #[arg(long, default_value_t = false)]
         erase: bool,
+        /// Controlls whether the uploaded binary is intended for future
+        /// jit compilation
+        #[arg(long, short, default_value_t = false)]
+        jit: bool,
     },
     /// Compiles, signs and initiates firmware pull in one step.
     Deploy {
@@ -185,6 +189,10 @@ pub enum Action {
         helper_access_list_source: String,
         #[arg(long, default_value_t = false)]
         erase: bool,
+        /// Controlls whether the uploaded binary is intended for future
+        /// jit compilation
+        #[arg(long, short, default_value_t = false)]
+        jit: bool,
     },
     /// Sends a request to the RIOT instance to execute the loaded eBPF bytecode
     /// from a specified SUIT storage slot.

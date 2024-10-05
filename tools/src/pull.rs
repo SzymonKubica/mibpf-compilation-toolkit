@@ -20,6 +20,7 @@ pub async fn pull(
     helper_access_list_source: HelperAccessListSource,
     helper_indices: &[u8],
     erase: bool,
+    for_jit: bool,
 ) -> Result<(), String> {
     let url = format!(
         "coap://[{}%{}]/suit/pull",
@@ -33,7 +34,11 @@ pub async fn pull(
         binary_layout,
         helper_access_verification,
         helper_access_list_source,
-        false,
+        for_jit, // If we mark the suit pull as 'for_jit' then the suit pull
+                 // handler does not perform relocation resolution when loading
+                 // the program which allows the jit compiler then to compile
+                 // successfully. Otherwise the blank load offsets are overwritten
+                 // and the jit compilation results in messed up offsets.
         false,
     );
 

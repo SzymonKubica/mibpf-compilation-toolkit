@@ -75,9 +75,10 @@ pub async fn test_jit_execution_specifying_helpers(
     target_vm: TargetVM,
     environment: &Environment,
     available_helpers: Vec<u8>,
+    for_jit: bool,
 ) {
     // We first deploy the program on the tested microcontroller
-    let result = deploy_test_script(test_program, layout, environment, available_helpers).await;
+    let result = deploy_test_script(test_program, layout, environment, available_helpers, for_jit).await;
     if let Err(string) = &result {
         println!("{}", string);
     }
@@ -110,9 +111,10 @@ pub async fn test_execution_specifying_helpers(
     target_vm: TargetVM,
     environment: &Environment,
     available_helpers: Vec<u8>,
+    for_jit: bool,
 ) {
     // We first deploy the program on the tested microcontroller
-    let result = deploy_test_script(test_program, layout, environment, available_helpers).await;
+    let result = deploy_test_script(test_program, layout, environment, available_helpers, for_jit).await;
     if let Err(string) = &result {
         println!("{}", string);
     }
@@ -152,7 +154,7 @@ pub async fn benchmark_fletcher_16(
     let test_source = format!("jit_fletcher16_checksum_{}B_data.c", bytes);
 
     let result =
-        deploy_test_script(&test_source, layout, environment, available_helpers.clone()).await;
+        deploy_test_script(&test_source, layout, environment, available_helpers.clone(), jit).await;
     if let Err(string) = &result {
         println!("{}", string);
     }
@@ -426,13 +428,14 @@ pub async fn benchmark_execution(
     layout: BinaryFileLayout,
     environment: &Environment,
     target: TargetVM,
+    for_jit: bool,
 ) -> BenchmarkResponse {
     // By default all helpers are allowed
     let available_helpers = all::<HelperFunctionID>()
         .map(|e| e as u8)
         .collect::<Vec<u8>>();
     // We first deploy the program on the tested microcontroller
-    let result = deploy_test_script(test_program, layout, environment, available_helpers).await;
+    let result = deploy_test_script(test_program, layout, environment, available_helpers, for_jit).await;
     if let Err(string) = &result {
         println!("{}", string);
     }
@@ -505,7 +508,7 @@ pub async fn benchmark_jit_execution(
         .collect::<Vec<u8>>();
     // We first deploy the program on the tested microcontroller
     let layout = BinaryFileLayout::RawObjectFile;
-    let result = deploy_test_script(test_program, layout, environment, available_helpers).await;
+    let result = deploy_test_script(test_program, layout, environment, available_helpers, true).await;
     if let Err(string) = &result {
         println!("{}", string);
     }
@@ -597,7 +600,7 @@ pub async fn test_execution_accessing_coap_pkt_specifying_helpers(
     jit: bool,
 ) {
     // We first deploy the program on the tested microcontroller
-    let result = deploy_test_script(test_program, layout, environment, available_helpers).await;
+    let result = deploy_test_script(test_program, layout, environment, available_helpers, jit).await;
     if let Err(string) = &result {
         println!("{}", string);
     }
@@ -635,6 +638,7 @@ pub async fn deploy_test_script(
     layout: BinaryFileLayout,
     environment: &Environment,
     allowed_helpers: Vec<u8>,
+    for_jit: bool,
 ) -> Result<(), String> {
     let file_path = format!("{}/{}", TEST_SOURCES_DIR, file_name);
     let out_dir = format!("{}/out", TEST_SOURCES_DIR);
@@ -655,6 +659,7 @@ pub async fn deploy_test_script(
         HelperAccessVerification::AheadOfTime,
         HelperAccessListSource::ExecuteRequest,
         true,
+        for_jit,
     )
     .await
 }
@@ -665,6 +670,7 @@ pub async fn deploy_test_script_into_slot(
     environment: &Environment,
     allowed_helpers: Vec<u8>,
     suit_slot: usize,
+    for_jit: bool,
 ) -> Result<(), String> {
     let file_path = format!("{}/{}", TEST_SOURCES_DIR, file_name);
     let out_dir = format!("{}/out", TEST_SOURCES_DIR);
@@ -685,6 +691,7 @@ pub async fn deploy_test_script_into_slot(
         HelperAccessVerification::AheadOfTime,
         HelperAccessListSource::ExecuteRequest,
         true,
+        for_jit,
     )
     .await
 }
