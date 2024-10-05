@@ -62,5 +62,5 @@ int test_printf(void *ctx)
     // string is also possible
     print("Here is a number: %d\n", 10);
     print("Here is another number: %d\n", 12);
-    return 0;
+    return 100;
 }
