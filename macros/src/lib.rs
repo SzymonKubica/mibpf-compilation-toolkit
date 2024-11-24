@@ -4,7 +4,7 @@ use syn::{parse_macro_input, Expr, Token, parse::Parse};
 
 struct MacroInput {
     pub env_name: Expr,
-    pub comma: Token![,],
+    pub _comma: Token![,],
     pub env_val: Expr,
 }
 
@@ -12,7 +12,7 @@ impl Parse for MacroInput {
     fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
         Ok(Self {
             env_name: input.parse()?,
-            comma: input.parse()?,
+            _comma: input.parse()?,
             env_val: input.parse()?,
         })
     }

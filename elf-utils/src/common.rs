@@ -2,7 +2,7 @@ use alloc::string::{String, ToString};
 use alloc::vec::Vec;
 use goblin::container::{Container, Endian};
 use goblin::elf::{Elf, Reloc, SectionHeader};
-use log::{debug, log_enabled, Level};
+use log::debug;
 
 pub const INSTRUCTION_SIZE: usize = 8;
 const SYMBOL_SIZE: usize = 6;
