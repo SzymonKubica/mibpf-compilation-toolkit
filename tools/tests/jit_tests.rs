@@ -195,6 +195,14 @@ async fn jit_helper_call() {
     test_jit("jit_helper-call.c").await;
 }
 
+// This test is very important in demonstrating whether the JIT compiler emits
+// correct assembly to put the top 3 args on the stack instead of passing them
+// in registers.
+#[tokio::test]
+async fn jit_helper_call_five_args() {
+    test_jit("jit_helper-call-five-args.c").await;
+}
+
 /* Accessing .data and .rodata */
 #[tokio::test]
 async fn jit_rodata() {
